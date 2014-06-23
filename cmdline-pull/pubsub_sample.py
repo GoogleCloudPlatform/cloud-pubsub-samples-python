@@ -55,10 +55,17 @@ def help():
     sys.stderr.write(ARG_HELP)
 
 
-def fqrn(project, resource):
+def fqrn(resource_type, project, resource):
     """Returns a fully qualified resource name for Cloud Pub/Sub."""
-    return "{}/{}".format(project, resource)
+    return "/{}/{}/{}".format(resource_type, project, resource)
 
+def get_full_topic_name(project, topic):
+    """Returns a fully qualified topic name."""
+    return fqrn('topics', project, topic)
+
+def get_full_subscription_name(project, subscription):
+    """Returns a fully qualified subscription name."""
+    return fqrn('subscriptions', project, subscription)
 
 def check_args_length(argv, min):
     """Checks the arguments length and exits when it's not long enough."""
@@ -72,7 +79,8 @@ def list_topics(client, args):
     next_page_token = None
     while True:
         params = {
-            'query': 'cloud.googleapis.com/project in ({})'.format(args[0])
+            'query':
+                'cloud.googleapis.com/project in (/projects/{})'.format(args[0])
         }
         if next_page_token:
             params['pageToken'] = next_page_token
@@ -89,7 +97,8 @@ def list_subscriptions(client, args):
     next_page_token = None
     while True:
         params = {
-            'query': 'cloud.googleapis.com/project in ({})'.format(args[0])
+            'query':
+                'cloud.googleapis.com/project in (/projects/{})'.format(args[0])
         }
         if next_page_token:
             params['pageToken'] = next_page_token
@@ -104,7 +113,7 @@ def list_subscriptions(client, args):
 def create_topic(client, args):
     """Creates a new topic."""
     check_args_length(args, 3)
-    body = {'name': fqrn(args[0], args[2])}
+    body = {'name': get_full_topic_name(args[0], args[2])}
     topic = client.topics().create(body=body).execute()
     print 'Topic {} was created.'.format(topic['name'])
 
@@ -112,7 +121,7 @@ def create_topic(client, args):
 def delete_topic(client, args):
     """Deletes a topic."""
     check_args_length(args, 3)
-    topic = fqrn(args[0], args[2])
+    topic = get_full_topic_name(args[0], args[2])
     client.topics().delete(topic=topic).execute()
     print 'Topic {} was deleted.'.format(topic)
 
@@ -120,7 +129,8 @@ def delete_topic(client, args):
 def create_subscription(client, args):
     """Creates a new subscription to a given topic."""
     check_args_length(args, 4)
-    body = {'name': fqrn(args[0], args[2]), 'topic': fqrn(args[0], args[3])}
+    body = {'name': get_full_subscription_name(args[0], args[2]),
+            'topic': get_full_topic_name(args[0], args[3])}
     subscription = client.subscriptions().create(body=body).execute()
     print 'Subscription {} was created.'.format(subscription['name'])
 
@@ -128,7 +138,7 @@ def create_subscription(client, args):
 def delete_subscription(client, args):
     """Deletes a subscription."""
     check_args_length(args, 3)
-    subscription = fqrn(args[0], args[2])
+    subscription = get_full_subscription_name(args[0], args[2])
     client.subscriptions().delete(subscription=subscription).execute()
     print 'Subscription {} was deleted.'.format(subscription)
 
@@ -153,7 +163,7 @@ def connect_irc(client, args):
     check_args_length(args, 5)
     server = args[3]
     channel = args[4]
-    topic = fqrn(args[0], args[2])
+    topic = get_full_topic_name(args[0], args[2])
     nick = 'bot-{}'.format(args[0])
     irc = socket.socket()
     print 'Connecting to {}'.format(server)
@@ -196,7 +206,7 @@ def connect_irc(client, args):
 def pull_messages(client, args):
     """Pulls messages from a given subscription."""
     check_args_length(args, 3)
-    subscription = fqrn(args[0], args[2])
+    subscription = get_full_subscription_name(args[0], args[2])
     body = {'subscription': subscription, 'returnImmediately': False}
     while True:
         try:

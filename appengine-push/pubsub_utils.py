@@ -55,16 +55,16 @@ def get_client():
     http = httplib2.Http(memcache)
     credentials.authorize(http)
 
-    return discovery.build('pubsub', 'v1beta1', http=http,
-                           developerKey=constants.API_KEY)
+    return discovery.build('pubsub', 'v1beta1', http=http)
 
 
 def get_full_topic_name():
-    return '{}/{}'.format(get_project_id(), get_app_topic_name())
+    return '/topics/{}/{}'.format(get_project_id(), get_app_topic_name())
 
 
 def get_full_subscription_name():
-    return '{}/{}'.format(get_project_id(), get_app_subscription_name())
+    return '/subscriptions/{}/{}'.format(
+        get_project_id(), get_app_subscription_name())
 
 
 def get_app_topic_name():
