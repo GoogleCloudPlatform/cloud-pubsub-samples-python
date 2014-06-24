@@ -5,7 +5,7 @@ with Python.
 
 - appengine-push
 
-  A sample for push subscription running on Google App Engine[1].
+  A sample for push subscription running on [Google App Engine][1].
 
 - cmdline-pull
 
