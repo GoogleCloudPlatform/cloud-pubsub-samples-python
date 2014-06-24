@@ -60,7 +60,7 @@ or you can use gcloud preview feature
 $ gcloud preview app deploy .
 ```
 
-= Run the application locally
+## Run the application locally
 
 ```
 $ dev_appserver.py
