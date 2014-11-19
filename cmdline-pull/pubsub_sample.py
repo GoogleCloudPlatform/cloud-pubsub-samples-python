@@ -36,6 +36,7 @@ ARG_HELP = '''Available arguments are:
   PROJ create_subscription SUBSCRIPTION LINKED_TOPIC
   PROJ delete_subscription SUBSCRIPTION
   PROJ connect_irc TOPIC SERVER CHANNEL
+  PROJ publish_message TOPIC MESSAGE
   PROJ pull_messages SUBSCRIPTION
 '''
 
@@ -43,11 +44,15 @@ PUBSUB_SCOPES = ["https://www.googleapis.com/auth/pubsub"]
 
 ACTIONS = ['list_topics', 'list_subscriptions', 'create_topic', 'delete_topic',
            'create_subscription', 'delete_subscription', 'connect_irc',
-           'pull_messages']
+           'publish_message', 'pull_messages']
 
 BOTNAME = 'pubsub-irc-bot/1.0'
 
 PORT = 6667
+
+NUM_RETRIES = 3
+
+BATCH_SIZE = 10
 
 
 def help():
@@ -84,7 +89,7 @@ def list_topics(client, args):
         }
         if next_page_token:
             params['pageToken'] = next_page_token
-        resp = client.topics().list(**params).execute()
+        resp = client.topics().list(**params).execute(num_retries=NUM_RETRIES)
         for topic in resp['topic']:
             print topic['name']
         next_page_token = resp.get('nextPageToken')
@@ -102,7 +107,8 @@ def list_subscriptions(client, args):
         }
         if next_page_token:
             params['pageToken'] = next_page_token
-        resp = client.subscriptions().list(**params).execute()
+        resp = client.subscriptions().list(**params).execute(
+            num_retries=NUM_RETRIES)
         for subscription in resp['subscription']:
             print json.dumps(subscription, indent=1)
         next_page_token = resp.get('nextPageToken')
@@ -114,7 +120,7 @@ def create_topic(client, args):
     """Creates a new topic."""
     check_args_length(args, 3)
     body = {'name': get_full_topic_name(args[0], args[2])}
-    topic = client.topics().create(body=body).execute()
+    topic = client.topics().create(body=body).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was created.'.format(topic['name'])
 
 
@@ -122,7 +128,7 @@ def delete_topic(client, args):
     """Deletes a topic."""
     check_args_length(args, 3)
     topic = get_full_topic_name(args[0], args[2])
-    client.topics().delete(topic=topic).execute()
+    client.topics().delete(topic=topic).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was deleted.'.format(topic)
 
 
@@ -131,7 +137,8 @@ def create_subscription(client, args):
     check_args_length(args, 4)
     body = {'name': get_full_subscription_name(args[0], args[2]),
             'topic': get_full_topic_name(args[0], args[3])}
-    subscription = client.subscriptions().create(body=body).execute()
+    subscription = client.subscriptions().create(body=body).execute(
+        num_retries=NUM_RETRIES)
     print 'Subscription {} was created.'.format(subscription['name'])
 
 
@@ -139,7 +146,8 @@ def delete_subscription(client, args):
     """Deletes a subscription."""
     check_args_length(args, 3)
     subscription = get_full_subscription_name(args[0], args[2])
-    client.subscriptions().delete(subscription=subscription).execute()
+    client.subscriptions().delete(subscription=subscription).execute(
+        num_retries=NUM_RETRIES)
     print 'Subscription {} was deleted.'.format(subscription)
 
 
@@ -198,27 +206,51 @@ def connect_irc(client, args):
                     line = "Title: {}, Diff: {}".format(m.group(1), m.group(2))
                 body = {
                     'topic': topic,
-                    'message': {'data': base64.urlsafe_b64encode(str(line))}
+                    'messages': [{'data': base64.b64encode(str(line))}]
                 }
-                client.topics().publish(body=body).execute()
+                client.topics().publishBatch(body=body).execute(
+                    num_retries=NUM_RETRIES)
+
+
+def publish_message(client, args):
+    """Publish a message to a given topic."""
+    check_args_length(args, 4)
+    topic = get_full_topic_name(args[0], args[2])
+    message = base64.b64encode(str(args[3]))
+    body = {'topic': topic, 'messages': [{'data': message}]}
+    resp = client.topics().publishBatch(body=body).execute(
+        num_retries=NUM_RETRIES)
+    print ('Published a message "{}" to a topic {}. The message_id was {}.'
+           .format(args[3], topic, resp.get('messageIds')[0]))
 
 
 def pull_messages(client, args):
     """Pulls messages from a given subscription."""
     check_args_length(args, 3)
     subscription = get_full_subscription_name(args[0], args[2])
-    body = {'subscription': subscription, 'returnImmediately': False}
+    body = {
+        'subscription': subscription,
+        'returnImmediately': False,
+        'maxEvents': BATCH_SIZE
+    }
     while True:
         try:
-            resp = client.subscriptions().pull(body=body).execute()
+            resp = client.subscriptions().pullBatch(body=body).execute(
+                num_retries=NUM_RETRIES)
         except Exception as e:
             time.sleep(0.5)
-        message = resp.get('pubsubEvent').get('message')
-        if message:
-            print base64.b64decode(str(message.get('data')), '_/')
-            ack_id = resp.get('ackId')
-            ack_body = {'subscription': subscription, 'ackId': [ack_id]}
-            client.subscriptions().acknowledge(body=ack_body).execute()
+            continue
+        responses = resp.get('pullResponses')
+        if responses is not None:
+            ack_ids = []
+            for response in responses:
+                message = response.get('pubsubEvent').get('message')
+                if message:
+                    print base64.b64decode(str(message.get('data')))
+                    ack_ids.append(response.get('ackId'))
+            ack_body = {'subscription': subscription, 'ackId': ack_ids}
+            client.subscriptions().acknowledge(body=ack_body).execute(
+                num_retries=NUM_RETRIES)
 
 
 def main(argv):

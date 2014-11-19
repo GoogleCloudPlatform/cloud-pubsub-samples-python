@@ -132,11 +132,11 @@ class SendMessage(webapp2.RequestHandler):
             topic_name = pubsub_utils.get_full_topic_name()
             body = {
                 'topic': topic_name,
-                'message': {
+                'messages': [{
                     'data': base64.b64encode(message.encode('utf-8'))
-                }
+                }]
             }
-            client.topics().publish(body=body).execute()
+            client.topics().publishBatch(body=body).execute()
         self.response.status = 204
 
 
