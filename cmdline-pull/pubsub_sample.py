@@ -218,7 +218,7 @@ def pull_messages(client, args):
             print base64.b64decode(str(message.get('data')), '_/')
             ack_id = resp.get('ackId')
             ack_body = {'subscription': subscription, 'ackId': [ack_id]}
-            client.subscriptions().acknowledge(body=body).execute()
+            client.subscriptions().acknowledge(body=ack_body).execute()
 
 
 def main(argv):
