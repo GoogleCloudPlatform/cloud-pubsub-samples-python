@@ -20,12 +20,15 @@
 import argparse
 import base64
 import json
+import os
 import re
 import socket
 import sys
 import time
 
-from apiclient import sample_tools
+import httplib2
+from apiclient import discovery
+from oauth2client import client as oauth2client
 
 
 ARG_HELP = '''Available arguments are:
@@ -53,6 +56,10 @@ PORT = 6667
 NUM_RETRIES = 3
 
 BATCH_SIZE = 10
+
+ENV_SERVICE_ACCOUNT = "SERVICE_ACCOUNT_EMAIL"
+
+ENV_PRIVKEY_PATH = "PRIVKEY_PATH"
 
 
 def help():
@@ -257,9 +264,17 @@ def main(argv):
     """Invokes a subcommand."""
     argparser = argparse.ArgumentParser(add_help=False)
     argparser.add_argument('args', nargs='*', help=ARG_HELP)
-    client, flags = sample_tools.init(
-        argv, 'pubsub', 'v1beta1', __doc__, __file__,
-        scope=PUBSUB_SCOPES, parents=[argparser])
+    privkey = None
+    with open(os.environ.get(ENV_PRIVKEY_PATH), 'r') as f:
+        privkey = f.read()
+    credentials = oauth2client.SignedJwtAssertionCredentials(
+        os.environ.get(ENV_SERVICE_ACCOUNT),
+        privkey,
+        PUBSUB_SCOPES)
+    http = credentials.authorize(http = httplib2.Http())
+
+    client = discovery.build('pubsub', 'v1beta1', http=http)
+    flags = argparser.parse_args(argv[1:])
     args = flags.args
     check_args_length(args, 2)
 
