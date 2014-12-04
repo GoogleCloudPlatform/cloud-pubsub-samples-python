@@ -12,13 +12,13 @@ API. You can do the following things with this command line tool:
 
 ## Prerequisites
 
-- Install Python-2.7 and google-api-python-client. Here is the
-  instruction with virtualenv and pip.
+- Install Python-2.7, google-api-python-client and pycrypto. Here are
+  the instructions with virtualenv and pip.
 
 ```
 $ virtualenv -p python2.7 --no-site-packages .
 $ source bin/activate
-$ pip install --upgrade google-api-python-client
+$ pip install -r requirements.txt
 ```
 ## Register your application
 
@@ -27,10 +27,18 @@ $ pip install --upgrade google-api-python-client
 
 - Enable the "Google Cloud Pub/Sub" API under "APIs & auth > APIs."
 
-- Go to "Credentials" and create a new Client ID by selecting
-  "Installed application" and "Other". Then click the "Download JSON"
-  button and save it as 'client_secrets.json' in the project top
-  directory.
+- Go to "Credentials" and create a new Service Account, then download
+  a new P12 key and comvert it to pem format with the following
+  command:
+
+  $ openssl pkcs12 -in p12file -nodes -nocerts > pemfile
+
+  Password is "notasecret"
+
+- Set the following environment variables.
+
+  - SERVICE_ACCOUNT_EMAIL: The e-mail address of your service account.
+  - PRIVKEY_PATH: The path of your private pem key file.
 
 ## Run the application
 
@@ -50,6 +58,9 @@ $ python pubsub_sample.py MYPROJ list_topics
 
 # create a new subscription "sub" on the "test" topic
 $ python pubsub_sample.py MYPROJ create_subscription sub test
+
+# publish a message "hello" to the "test" topic
+$ python pubsub_sample.py MYPROJ publish_message test hello
 
 # connect to the Wikipedia recent change channel
 $ python pubsub_sample.py \
