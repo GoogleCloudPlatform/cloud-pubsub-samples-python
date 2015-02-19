@@ -69,7 +69,7 @@ def help():
 
 def fqrn(resource_type, project, resource):
     """Returns a fully qualified resource name for Cloud Pub/Sub."""
-    return "/{}/{}/{}".format(resource_type, project, resource)
+    return "projects/{}/{}/{}".format(project, resource_type, resource)
 
 def get_full_topic_name(project, topic):
     """Returns a fully qualified topic name."""
@@ -90,14 +90,12 @@ def list_topics(client, args):
     """Shows the list of current topics."""
     next_page_token = None
     while True:
-        params = {
-            'query':
-                'cloud.googleapis.com/project in (/projects/{})'.format(args[0])
-        }
+        resp = client.projects().topics().list(
+            project='projects/{}'.format(args[0]),
+            pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
         if next_page_token:
             params['pageToken'] = next_page_token
-        resp = client.topics().list(**params).execute(num_retries=NUM_RETRIES)
-        for topic in resp['topic']:
+        for topic in resp['topics']:
             print topic['name']
         next_page_token = resp.get('nextPageToken')
         if not next_page_token:
@@ -108,15 +106,12 @@ def list_subscriptions(client, args):
     """Shows the list of current subscriptions."""
     next_page_token = None
     while True:
-        params = {
-            'query':
-                'cloud.googleapis.com/project in (/projects/{})'.format(args[0])
-        }
+        resp = client.projects().subscriptions().list(
+            project='projects/{}'.format(args[0]),
+            pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
         if next_page_token:
             params['pageToken'] = next_page_token
-        resp = client.subscriptions().list(**params).execute(
-            num_retries=NUM_RETRIES)
-        for subscription in resp['subscription']:
+        for subscription in resp['subscriptions']:
             print json.dumps(subscription, indent=1)
         next_page_token = resp.get('nextPageToken')
         if not next_page_token:
@@ -126,8 +121,9 @@ def list_subscriptions(client, args):
 def create_topic(client, args):
     """Creates a new topic."""
     check_args_length(args, 3)
-    body = {'name': get_full_topic_name(args[0], args[2])}
-    topic = client.topics().create(body=body).execute(num_retries=NUM_RETRIES)
+    topic = client.projects().topics().create(
+        name=get_full_topic_name(args[0], args[2]),
+        body={}).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was created.'.format(topic['name'])
 
 
@@ -135,17 +131,18 @@ def delete_topic(client, args):
     """Deletes a topic."""
     check_args_length(args, 3)
     topic = get_full_topic_name(args[0], args[2])
-    client.topics().delete(topic=topic).execute(num_retries=NUM_RETRIES)
+    client.projects().topics().delete(
+        topic=topic).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was deleted.'.format(topic)
 
 
 def create_subscription(client, args):
     """Creates a new subscription to a given topic."""
     check_args_length(args, 4)
-    body = {'name': get_full_subscription_name(args[0], args[2]),
-            'topic': get_full_topic_name(args[0], args[3])}
-    subscription = client.subscriptions().create(body=body).execute(
-        num_retries=NUM_RETRIES)
+    name = get_full_subscription_name(args[0], args[2])
+    body = {'topic': get_full_topic_name(args[0], args[3])}
+    subscription = client.projects().subscriptions().create(
+        name=name, body=body).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was created.'.format(subscription['name'])
 
 
@@ -153,8 +150,8 @@ def delete_subscription(client, args):
     """Deletes a subscription."""
     check_args_length(args, 3)
     subscription = get_full_subscription_name(args[0], args[2])
-    client.subscriptions().delete(subscription=subscription).execute(
-        num_retries=NUM_RETRIES)
+    client.projects().subscriptions().delete(
+        subscription=subscription).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was deleted.'.format(subscription)
 
 
@@ -212,11 +209,10 @@ def connect_irc(client, args):
                 if m:
                     line = "Title: {}, Diff: {}".format(m.group(1), m.group(2))
                 body = {
-                    'topic': topic,
                     'messages': [{'data': base64.b64encode(str(line))}]
                 }
-                client.topics().publishBatch(body=body).execute(
-                    num_retries=NUM_RETRIES)
+                client.projects().topics().publish(
+                    topic=topic, body=body).execute(num_retries=NUM_RETRIES)
 
 
 def publish_message(client, args):
@@ -224,9 +220,9 @@ def publish_message(client, args):
     check_args_length(args, 4)
     topic = get_full_topic_name(args[0], args[2])
     message = base64.b64encode(str(args[3]))
-    body = {'topic': topic, 'messages': [{'data': message}]}
-    resp = client.topics().publishBatch(body=body).execute(
-        num_retries=NUM_RETRIES)
+    body = {'messages': [{'data': message}]}
+    resp = client.projects().topics().publish(
+        topic=topic, body=body).execute(num_retries=NUM_RETRIES)
     print ('Published a message "{}" to a topic {}. The message_id was {}.'
            .format(args[3], topic, resp.get('messageIds')[0]))
 
@@ -236,28 +232,29 @@ def pull_messages(client, args):
     check_args_length(args, 3)
     subscription = get_full_subscription_name(args[0], args[2])
     body = {
-        'subscription': subscription,
         'returnImmediately': False,
-        'maxEvents': BATCH_SIZE
+        'maxMessages': BATCH_SIZE
     }
     while True:
         try:
-            resp = client.subscriptions().pullBatch(body=body).execute(
-                num_retries=NUM_RETRIES)
+            resp = client.projects().subscriptions().pull(
+                subscription=subscription, body=body).execute(
+                    num_retries=NUM_RETRIES)
         except Exception as e:
             time.sleep(0.5)
             continue
-        responses = resp.get('pullResponses')
-        if responses is not None:
+        receivedMessages = resp.get('receivedMessages')
+        if receivedMessages is not None:
             ack_ids = []
-            for response in responses:
-                message = response.get('pubsubEvent').get('message')
+            for receivedMessage in receivedMessages:
+                message = receivedMessage.get('message')
                 if message:
                     print base64.b64decode(str(message.get('data')))
-                    ack_ids.append(response.get('ackId'))
-            ack_body = {'subscription': subscription, 'ackId': ack_ids}
-            client.subscriptions().acknowledge(body=ack_body).execute(
-                num_retries=NUM_RETRIES)
+                    ack_ids.append(receivedMessage.get('ackId'))
+            ack_body = {'ackIds': ack_ids}
+            client.projects().subscriptions().acknowledge(
+                subscription=subscription, body=ack_body).execute(
+                    num_retries=NUM_RETRIES)
 
 
 def main(argv):
@@ -273,7 +270,7 @@ def main(argv):
         PUBSUB_SCOPES)
     http = credentials.authorize(http = httplib2.Http())
 
-    client = discovery.build('pubsub', 'v1beta1', http=http)
+    client = discovery.build('pubsub', 'v1beta2', http=http)
     flags = argparser.parse_args(argv[1:])
     args = flags.args
     check_args_length(args, 2)

@@ -63,11 +63,12 @@ class InitHandler(webapp2.RequestHandler):
         """Creates a topic if it does not exist."""
         topic_name = pubsub_utils.get_full_topic_name()
         try:
-            topic = self.client.topics().get(topic=topic_name).execute()
+            topic = self.client.projects().topics().get(
+                topic=topic_name).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:
-                body = {'name': topic_name}
-                self.client.topics().create(body=body).execute()
+                self.client.projects().topics().create(
+                    name=topic_name, body={}).execute()
             else:
                 logging.exception(e)
                 raise
@@ -76,24 +77,24 @@ class InitHandler(webapp2.RequestHandler):
         """Creates a subscription if it does not exist."""
         subscription_name = pubsub_utils.get_full_subscription_name()
         try:
-            subscription = self.client.subscriptions().get(
+            subscription = self.client.projects().subscriptions().get(
                 subscription=subscription_name).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:
                 body = {
-                    'name': subscription_name,
                     'topic': pubsub_utils.get_full_topic_name(),
                     'pushConfig': {
                         'pushEndpoint': pubsub_utils.get_app_endpoint_url()
                     }
                 }
-                self.client.subscriptions().create(body=body).execute()
+                self.client.projects().subscriptions().create(
+                    name=subscription_name, body=body).execute()
             else:
                 logging.exception(e)
                 raise
 
     def get(self):
-        """Creates a topic and a subscription if they do not exist."""
+        """Shows an HTML form."""
         template = JINJA2.get_template('pubsub.html')
         endpoint_url = re.sub('token=[^&]*', 'token=REDACTED',
                               pubsub_utils.get_app_endpoint_url())
@@ -131,12 +132,12 @@ class SendMessage(webapp2.RequestHandler):
         if message:
             topic_name = pubsub_utils.get_full_topic_name()
             body = {
-                'topic': topic_name,
                 'messages': [{
                     'data': base64.b64encode(message.encode('utf-8'))
                 }]
             }
-            client.topics().publishBatch(body=body).execute()
+            client.projects().topics().publish(
+                topic=topic_name, body=body).execute()
         self.response.status = 204
 
 
