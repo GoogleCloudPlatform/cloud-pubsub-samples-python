@@ -62,9 +62,9 @@ def create_pubsub_client():
     return discovery.build('pubsub', 'v1beta2', http=http)
 
 
-def publish(client, pubsub_topic, reading):
-    """Publish a traffic sensor reading to the given pubsub topic."""
-    pub = base64.urlsafe_b64encode(reading)
+def publish(client, pubsub_topic, data_line):
+    """Publish to the given pubsub topic."""
+    pub = base64.urlsafe_b64encode(data_line)
     body = {'messages': [{'data': pub}]}
     resp = client.projects().topics().publish(
         topic=pubsub_topic, body=body).execute(num_retries=NUM_RETRIES)
