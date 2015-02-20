@@ -139,7 +139,6 @@ def main(argv):
                     restart_time = datetime.datetime.utcnow()
                     print "restart_time is set to: %s" % restart_time
                 prev_date = orig_date
-                # print ",".join(line)
                 publish(client, pubsub_topic, ",".join(line))
             except ValueError, e:
                 sys.stderr.write("---Error: %s for %s\n" % (e, line))
