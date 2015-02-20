@@ -11,4 +11,8 @@ with Python.
 
   A command line sample for pull subscription.
 
+- gce-cmdline-publisher
+
+  A Python command-line script that publishes to a topic using data from a large traffic sensor dataset.
+
 [1]: https://developers.google.com/appengine/
