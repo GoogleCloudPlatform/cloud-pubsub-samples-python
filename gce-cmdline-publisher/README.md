@@ -10,4 +10,7 @@ You can install this library via:
 pip install --upgrade google-api-python-client
 ```
 
-See the documentation in the script for more detail.
+See [this page](https://developers.google.com/accounts/docs/application-default-credentials)
+for more information about the `GoogleCredentials` library used by the script.
+
+See the documentation in `traffic_pubsub_generator.py` for more detail.
