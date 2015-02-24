@@ -209,7 +209,7 @@ def connect_irc(client, args):
                 if m:
                     line = "Title: {}, Diff: {}".format(m.group(1), m.group(2))
                 body = {
-                    'messages': [{'data': base64.b64encode(str(line))}]
+                    'messages': [{'data': base64.urlsafe_b64encode(str(line))}]
                 }
                 client.projects().topics().publish(
                     topic=topic, body=body).execute(num_retries=NUM_RETRIES)
@@ -219,7 +219,7 @@ def publish_message(client, args):
     """Publish a message to a given topic."""
     check_args_length(args, 4)
     topic = get_full_topic_name(args[0], args[2])
-    message = base64.b64encode(str(args[3]))
+    message = base64.urlsafe_b64encode(str(args[3]))
     body = {'messages': [{'data': message}]}
     resp = client.projects().topics().publish(
         topic=topic, body=body).execute(num_retries=NUM_RETRIES)
@@ -249,7 +249,7 @@ def pull_messages(client, args):
             for receivedMessage in receivedMessages:
                 message = receivedMessage.get('message')
                 if message:
-                    print base64.b64decode(str(message.get('data')))
+                    print base64.urlsafe_b64decode(str(message.get('data')))
                     ack_ids.append(receivedMessage.get('ackId'))
             ack_body = {'ackIds': ack_ids}
             client.projects().subscriptions().acknowledge(
