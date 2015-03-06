@@ -36,7 +36,8 @@ ARG_HELP = '''Available arguments are:
   PROJ create_topic TOPIC
   PROJ delete_topic TOPIC
   PROJ list_subscriptions
-  PROJ create_subscription SUBSCRIPTION LINKED_TOPIC
+  PROJ list_subscriptions_in_topic TOPIC
+  PROJ create_subscription SUBSCRIPTION LINKED_TOPIC [PUSH_ENDPOINT]
   PROJ delete_subscription SUBSCRIPTION
   PROJ connect_irc TOPIC SERVER CHANNEL
   PROJ publish_message TOPIC MESSAGE
@@ -45,9 +46,10 @@ ARG_HELP = '''Available arguments are:
 
 PUBSUB_SCOPES = ["https://www.googleapis.com/auth/pubsub"]
 
-ACTIONS = ['list_topics', 'list_subscriptions', 'create_topic', 'delete_topic',
-           'create_subscription', 'delete_subscription', 'connect_irc',
-           'publish_message', 'pull_messages']
+ACTIONS = ['list_topics', 'list_subscriptions', 'list_subscriptions_in_topic',
+           'create_topic', 'delete_topic', 'create_subscription',
+           'delete_subscription', 'connect_irc', 'publish_message',
+           'pull_messages']
 
 BOTNAME = 'pubsub-irc-bot/1.0'
 
@@ -118,6 +120,23 @@ def list_subscriptions(client, args):
             break
 
 
+def list_subscriptions_in_topic(client, args):
+    """Shows the list of subscriptions attached to a given topic."""
+    next_page_token = None
+    while True:
+        topic = get_full_topic_name(args[0], args[2])
+        resp = client.projects().topics().subscriptions().list(
+            topic=topic,
+            pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
+        if next_page_token:
+            params['pageToken'] = next_page_token
+        for subscription in resp['subscriptions']:
+            print subscription
+        next_page_token = resp.get('nextPageToken')
+        if not next_page_token:
+            break
+
+
 def create_topic(client, args):
     """Creates a new topic."""
     check_args_length(args, 3)
@@ -140,7 +159,14 @@ def create_subscription(client, args):
     """Creates a new subscription to a given topic."""
     check_args_length(args, 4)
     name = get_full_subscription_name(args[0], args[2])
-    body = {'topic': get_full_topic_name(args[0], args[3])}
+    if '/' in args[3]:
+        topic_name = args[3]
+    else:
+        topic_name = get_full_topic_name(args[0], args[3])
+    body = {'topic': topic_name}
+    if len(args) == 5:
+      # push_endpoint
+      body['pushConfig'] = {'pushEndpoint': args[4]}
     subscription = client.projects().subscriptions().create(
         name=name, body=body).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was created.'.format(subscription['name'])
