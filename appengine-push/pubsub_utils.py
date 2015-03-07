@@ -19,11 +19,10 @@
 import os
 
 import httplib2
-import oauth2client.appengine as gae_oauth2client
 from apiclient import discovery
 from google.appengine.api import memcache
 from google.appengine.api import app_identity
-from oauth2client import client as oauth2client
+from oauth2client.client import GoogleCredentials
 
 import constants
 
@@ -40,17 +39,14 @@ def is_devserver():
 
 def get_client():
     """Creates Pub/Sub client and returns it."""
-    if is_devserver():
-        private_key = None
-        with open(constants.PRIVATE_KEY_FILE, 'r') as f:
-            private_key = f.read()
-        credentials = oauth2client.SignedJwtAssertionCredentials(
-            constants.SERVICE_ACCOUNT_EMAIL,
-            private_key,
-            PUBSUB_SCOPES)
-    else:
-        credentials = gae_oauth2client.AppAssertionCredentials(
-            scope=PUBSUB_SCOPES)
+    return get_client_from_credentials(
+        GoogleCredentials.get_application_default())
+
+
+def get_client_from_credentials(credentials):
+    """Creates Pub/Sub client from a given credentials and returns it."""
+    if credentials.create_scoped_required():
+        credentials = credentials.create_scoped(PUBSUB_SCOPES)
 
     http = httplib2.Http(memcache)
     credentials.authorize(http)

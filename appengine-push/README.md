@@ -16,8 +16,15 @@ TODO(tmatsuo): Better implementation for devserver.
 
 - Enable the "Google Cloud Pub/Sub" API under "APIs & auth > APIs."
 
-- For local development, also create a new client ID of type Service
-  account. Save the private key with a strict permission.
+- For local development also follow the instructions below.
+
+  - Go to "Credentials" and create a new Service Account.
+
+  - Select "Generate new JSON key", then download a new JSON file.
+
+  - Set the following environment variable.
+
+    GOOGLE_APPLICATION_CREDENTIALS: the file path to the downloaded JSON file.
 
 ## Prerequisites
 
@@ -27,10 +34,9 @@ TODO(tmatsuo): Better implementation for devserver.
 - For local development, you also need to install PyCrypto-2.6 or
   higher.
 
-- Download google api client.  Install Google API client library for
-  python. Unzip google-api-python-client-gae-N.M.zip from our
-  [downloads list][3] into a new 'lib' directory as described in our
-  [documentation][4].
+- Install Google API client library for python by invoking:
+
+  $ sh scripts/setup-google-api-client.sh .
 
 ## Configuration
 
@@ -39,14 +45,6 @@ TODO(tmatsuo): Better implementation for devserver.
 
 - Edit constants.py
     - Replace '{AN_UNIQUE_TOKEN}' with your random unique token.
-
-- For local development, do the following too.
-    - Replace '{YOUR_SERVICE_ACCOUNT_PRIVATE_KEY_FILE}' with the
-      filename of the private key of your service account.
-    - Replace '{SERVICE-ACCOUNT-EMAIL}' with the e-mail address of
-      your service account.
-    - Then access the following URL:
-        https://{your-application-id}.appspot.com/
 
 ## Deploy the application to App Engine
 
@@ -57,8 +55,11 @@ $ appcfg.py --oauth2 update .
 or you can use gcloud preview feature
 
 ```
-$ gcloud preview app deploy .
+$ gcloud preview app deploy --project={your-application-id} .
 ```
+
+Then access the following URL:
+  https://{your-application-id}.appspot.com/
 
 ## Run the application locally
 
@@ -68,5 +69,3 @@ $ dev_appserver.py
 
 [1]: https://console.developers.google.com/project
 [2]: https://developers.google.com/cloud/sdk/
-[3]: https://code.google.com/p/google-api-python-client/downloads/list
-[4]: https://developers.google.com/api-client-library/python/start/installation
