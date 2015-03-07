@@ -28,7 +28,7 @@ import time
 
 import httplib2
 from apiclient import discovery
-from oauth2client import client as oauth2client
+from oauth2client.client import GoogleCredentials
 
 
 ARG_HELP = '''Available arguments are:
@@ -58,11 +58,6 @@ PORT = 6667
 NUM_RETRIES = 3
 
 BATCH_SIZE = 10
-
-ENV_SERVICE_ACCOUNT = "SERVICE_ACCOUNT_EMAIL"
-
-ENV_PRIVKEY_PATH = "PRIVKEY_PATH"
-
 
 def help():
     """Shows a help message."""
@@ -287,14 +282,12 @@ def main(argv):
     """Invokes a subcommand."""
     argparser = argparse.ArgumentParser(add_help=False)
     argparser.add_argument('args', nargs='*', help=ARG_HELP)
-    privkey = None
-    with open(os.environ.get(ENV_PRIVKEY_PATH), 'r') as f:
-        privkey = f.read()
-    credentials = oauth2client.SignedJwtAssertionCredentials(
-        os.environ.get(ENV_SERVICE_ACCOUNT),
-        privkey,
-        PUBSUB_SCOPES)
-    http = credentials.authorize(http = httplib2.Http())
+
+    credentials = GoogleCredentials.get_application_default()
+    if credentials.create_scoped_required():
+        credentials = credentials.create_scoped(PUBSUB_SCOPES)
+    http = httplib2.Http()
+    credentials.authorize(http=http)
 
     client = discovery.build('pubsub', 'v1beta2', http=http)
     flags = argparser.parse_args(argv[1:])
