@@ -12,8 +12,8 @@ API. You can do the following things with this command line tool:
 
 ## Prerequisites
 
-- Install Python-2.7, google-api-python-client and pycrypto. Here are
-  the instructions with virtualenv and pip.
+- Install Python-2.7 and google-api-python-client. Here are the
+  instructions with virtualenv and pip.
 
 ```
 $ virtualenv -p python2.7 --no-site-packages .
@@ -27,18 +27,13 @@ $ pip install -r requirements.txt
 
 - Enable the "Google Cloud Pub/Sub" API under "APIs & auth > APIs."
 
-- Go to "Credentials" and create a new Service Account, then download
-  a new P12 key and comvert it to pem format with the following
-  command:
+- Go to "Credentials" and create a new Service Account.
 
-  $ openssl pkcs12 -in p12file -nodes -nocerts > pemfile
+- Select "Generate new JSON key", then download a new JSON file.
 
-  Password is "notasecret"
+- Set the following environment variable.
 
-- Set the following environment variables.
-
-  - SERVICE_ACCOUNT_EMAIL: The e-mail address of your service account.
-  - PRIVKEY_PATH: The path of your private pem key file.
+  GOOGLE_APPLICATION_CREDENTIALS: the file path to the downloaded JSON file.
 
 ## Run the application
 
