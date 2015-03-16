@@ -73,7 +73,7 @@ def get_app_topic_name():
 
 
 def get_app_subscription_name():
-    return 'subscription-pyton-{}'.format(get_project_id())
+    return 'subscription-python-{}'.format(get_project_id())
 
 
 def get_app_endpoint_url():
