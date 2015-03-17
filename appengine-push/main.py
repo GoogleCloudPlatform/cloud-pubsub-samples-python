@@ -151,7 +151,8 @@ class ReceiveMessage(webapp2.RequestHandler):
         # Store the message in the datastore.
         logging.debug('Post body: {}'.format(self.request.body))
         message = json.loads(urllib.unquote(self.request.body).rstrip('='))
-        message_body = base64.urlsafe_b64decode(message['message']['data'])
+        message_body = base64.urlsafe_b64decode(
+            str(message['message']['data']))
         pubsub_message = PubSubMessage(message=message_body)
         pubsub_message.put()
 
