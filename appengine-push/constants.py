@@ -16,13 +16,4 @@
 
 """Cloud Pub/Sub sample application constants."""
 
-
-API_KEY = '{YOUR-API-KEY}'
-
 SUBSCRIPTION_UNIQUE_TOKEN = '{AN-UNIQUE-TOKEN}'
-
-# Use the following on the devserver
-
-PRIVATE_KEY_FILE = '{YOUR-SERVICE-ACCOUNT-PRIVATE-KEY-FILE}'
-
-SERVICE_ACCOUNT_EMAIL = '{SERVICE-ACCOUNT-EMAIL}'
