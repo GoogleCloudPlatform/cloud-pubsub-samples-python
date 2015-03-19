@@ -47,7 +47,8 @@ TODO(tmatsuo): Better implementation for devserver.
       application field is deprecated and not used by gcloud.
 
 - Edit constants.py
-    - Replace '{AN_UNIQUE_TOKEN}' with your random unique token.
+    - Replace '{AN_UNIQUE_TOKEN}' with an arbitrary secret string of
+      your choice to protect the endpoint from abuse.
 
 ## Deploy the application to App Engine
 
