@@ -41,7 +41,10 @@ TODO(tmatsuo): Better implementation for devserver.
 ## Configuration
 
 - Edit app.yaml
-    - Replace 'your-application-id' with your real application id.
+    - Replace 'your-application-id' with your real application id. If
+      you will use the new gcloud preview feature, you may comment out
+      this entire line by prefxing the line with a '#'. The
+      application field is deprecated and not used by gcloud.
 
 - Edit constants.py
     - Replace '{AN_UNIQUE_TOKEN}' with your random unique token.
@@ -55,7 +58,7 @@ $ appcfg.py --oauth2 update .
 or you can use gcloud preview feature
 
 ```
-$ gcloud preview app deploy --project={your-application-id} .
+$ gcloud preview app deploy . --project your-application-id
 ```
 
 Then access the following URL:
