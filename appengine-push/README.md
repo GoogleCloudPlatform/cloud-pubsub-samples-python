@@ -10,9 +10,10 @@ TODO(tmatsuo): Better implementation for devserver.
 
 ## Register your application
 
-- Go to [Google Developers Console][1] and create a new project. This
-  will automatically enable an App Engine application with the same ID
-  as the project.
+- Go to
+  [Google Developers Console](https://console.developers.google.com/project)
+  and create a new project. This will automatically enable an App
+  Engine application with the same ID as the project.
 
 - Enable the "Google Cloud Pub/Sub" API under "APIs & auth > APIs."
 
@@ -28,23 +29,18 @@ TODO(tmatsuo): Better implementation for devserver.
 
 ## Prerequisites
 
-- Install Python-2.7 and App Engine Python SDK. We recommend you
-  install [Cloud SDK][2] rather than just installing App Engine SDK.
+- Install Python-2.7, pip-6.0.0 or higher and App Engine Python SDK.
+  We recommend you install
+  [Cloud SDK](https://developers.google.com/cloud/sdk/) rather than
+  just installing App Engine SDK.
 
-- For local development, you also need to install PyCrypto-2.6 or
-  higher.
+- Install Google API client library for python into 'lib' directory by:
 
-- Install Google API client library for python by invoking:
-
-  $ sh scripts/setup-google-api-client.sh .
+```
+$ pip install -t lib -r requirements.txt
+```
 
 ## Configuration
-
-- Edit app.yaml
-    - Replace 'your-application-id' with your real application id. If
-      you will use the new gcloud preview feature, you may comment out
-      this entire line by prefxing the line with a '#'. The
-      application field is deprecated and not used by gcloud.
 
 - Edit constants.py
     - Replace '{AN_UNIQUE_TOKEN}' with an arbitrary secret string of
@@ -53,13 +49,13 @@ TODO(tmatsuo): Better implementation for devserver.
 ## Deploy the application to App Engine
 
 ```
-$ appcfg.py --oauth2 update .
+$ appcfg.py --oauth2 update -A your-application-id .
 ```
 
 or you can use gcloud preview feature
 
 ```
-$ gcloud preview app deploy . --project your-application-id
+$ gcloud preview app deploy --project your-application-id .
 ```
 
 Then access the following URL:
@@ -68,8 +64,5 @@ Then access the following URL:
 ## Run the application locally
 
 ```
-$ dev_appserver.py
+$ dev_appserver.py -A your-application-id .
 ```
-
-[1]: https://console.developers.google.com/project
-[2]: https://developers.google.com/cloud/sdk/

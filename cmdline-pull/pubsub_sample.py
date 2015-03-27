@@ -20,7 +20,6 @@
 import argparse
 import base64
 import json
-import os
 import re
 import socket
 import sys
@@ -59,6 +58,7 @@ NUM_RETRIES = 3
 
 BATCH_SIZE = 10
 
+
 def help():
     """Shows a help message."""
     sys.stderr.write(ARG_HELP)
@@ -68,13 +68,16 @@ def fqrn(resource_type, project, resource):
     """Returns a fully qualified resource name for Cloud Pub/Sub."""
     return "projects/{}/{}/{}".format(project, resource_type, resource)
 
+
 def get_full_topic_name(project, topic):
     """Returns a fully qualified topic name."""
     return fqrn('topics', project, topic)
 
+
 def get_full_subscription_name(project, subscription):
     """Returns a fully qualified subscription name."""
     return fqrn('subscriptions', project, subscription)
+
 
 def check_args_length(argv, min):
     """Checks the arguments length and exits when it's not long enough."""
@@ -90,8 +93,6 @@ def list_topics(client, args):
         resp = client.projects().topics().list(
             project='projects/{}'.format(args[0]),
             pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
-        if next_page_token:
-            params['pageToken'] = next_page_token
         for topic in resp['topics']:
             print topic['name']
         next_page_token = resp.get('nextPageToken')
@@ -106,8 +107,6 @@ def list_subscriptions(client, args):
         resp = client.projects().subscriptions().list(
             project='projects/{}'.format(args[0]),
             pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
-        if next_page_token:
-            params['pageToken'] = next_page_token
         for subscription in resp['subscriptions']:
             print json.dumps(subscription, indent=1)
         next_page_token = resp.get('nextPageToken')
@@ -123,8 +122,6 @@ def list_subscriptions_in_topic(client, args):
         resp = client.projects().topics().subscriptions().list(
             topic=topic,
             pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
-        if next_page_token:
-            params['pageToken'] = next_page_token
         for subscription in resp['subscriptions']:
             print subscription
         next_page_token = resp.get('nextPageToken')
@@ -160,8 +157,8 @@ def create_subscription(client, args):
         topic_name = get_full_topic_name(args[0], args[3])
     body = {'topic': topic_name}
     if len(args) == 5:
-      # push_endpoint
-      body['pushConfig'] = {'pushEndpoint': args[4]}
+        # push_endpoint
+        body['pushConfig'] = {'pushEndpoint': args[4]}
     subscription = client.projects().subscriptions().create(
         name=name, body=body).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was created.'.format(subscription['name'])
@@ -261,7 +258,7 @@ def pull_messages(client, args):
             resp = client.projects().subscriptions().pull(
                 subscription=subscription, body=body).execute(
                     num_retries=NUM_RETRIES)
-        except Exception as e:
+        except Exception:
             time.sleep(0.5)
             continue
         receivedMessages = resp.get('receivedMessages')
