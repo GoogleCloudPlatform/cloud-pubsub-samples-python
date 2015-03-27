@@ -56,7 +56,7 @@ def get_client_from_credentials(credentials):
 
 def get_full_topic_name():
     return 'projects/{}/topics/{}'.format(
-      get_project_id(), get_app_topic_name())
+        get_project_id(), get_app_topic_name())
 
 
 def get_full_subscription_name():

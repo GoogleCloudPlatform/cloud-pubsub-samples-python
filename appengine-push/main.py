@@ -63,7 +63,7 @@ class InitHandler(webapp2.RequestHandler):
         """Creates a topic if it does not exist."""
         topic_name = pubsub_utils.get_full_topic_name()
         try:
-            topic = self.client.projects().topics().get(
+            self.client.projects().topics().get(
                 topic=topic_name).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:
@@ -77,7 +77,7 @@ class InitHandler(webapp2.RequestHandler):
         """Creates a subscription if it does not exist."""
         subscription_name = pubsub_utils.get_full_subscription_name()
         try:
-            subscription = self.client.projects().subscriptions().get(
+            self.client.projects().subscriptions().get(
                 subscription=subscription_name).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:

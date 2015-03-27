@@ -16,7 +16,6 @@
 
 """Cloud Pub/Sub sample application config."""
 
-import os
-import sys
+from google.appengine.ext import vendor
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))
+vendor.add('lib')
