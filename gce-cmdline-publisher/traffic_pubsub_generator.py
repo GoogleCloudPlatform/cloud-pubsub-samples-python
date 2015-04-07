@@ -203,8 +203,7 @@ def main(argv):
                 if incidents:  # if generating traffic 'incidents' as well
                     # randomly determine whether we'll generate an incident
                     # associated with this reading.
-                    rand = random.random()
-                    if rand < INCIDENT_THRESH:
+                    if random.random() < INCIDENT_THRESH:
                         print "Generating a traffic incident for %s." % line
                         # grab the timestring, station id, freeway, and
                         # direction of travel.
