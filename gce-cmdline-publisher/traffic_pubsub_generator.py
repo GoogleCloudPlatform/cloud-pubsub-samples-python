@@ -206,7 +206,6 @@ def main(argv):
                     rand = random.random()
                     if rand < INCIDENT_THRESH:
                         print "Generating a traffic incident for %s." % line
-                        print "rand: %s" % (rand)
                         # grab the timestring, station id, freeway, and
                         # direction of travel.
                         # Then generate some 'incident' data and publish it to
