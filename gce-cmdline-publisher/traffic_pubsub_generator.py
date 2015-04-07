@@ -19,9 +19,10 @@ to PubSub.  If you run it on a GCE instance, this instance must be
 created with the "Cloud Platform" Project Access enabled. Click on
 "Show advanced options" when creating the image to find this setting.
 
-Before you run the script, create a PubSub topic, in the same project as the
-GCE instance you will run on, to publish to. Edit the TOPIC variable in the
-script to point to this topic.
+Before you run the script, create two PubSub topics, in the same project as the
+GCE instance you will run on, to publish to. Edit the TRAFFIC_TOPIC and
+INCIDENT_TOPIC variables in the script to point to these topics, or you can
+pass in their names as command-line arguments.
 
 Before you run this script, download an input data file (~2GB):
 curl -O \
@@ -44,14 +45,16 @@ To restrict to N lines, do something like this:
   --num_lines 10 --replay
 
 To alter the data timestamps to start from the script time, add
-the --current flag.  If you want to set the topic from the command line, use
-the --topic flag.
+the --current flag.
+If you want to set the topics from the command line, use
+the --topic and --incident_topic flags.
 Run 'python traffic_pubsub_generator.py -h' for more information.
 """
 import argparse
 import base64
 import csv
 import datetime
+import random
 import sys
 import time
 
@@ -60,11 +63,25 @@ from dateutil.parser import parse
 import httplib2
 from oauth2client.client import GoogleCredentials
 
-TOPIC = 'projects/your-project/topics/your-topic'  # default; set to your topic
+# default; set to your traffic topic. Can override on command line.
+TRAFFIC_TOPIC = 'projects/your-project/topics/your-topic'
+# default; set to your incident topic.  Can override on command line.
+INCIDENT_TOPIC = 'projects/your-project/topics/your-incident-topic'
 LINE_BATCHES = 100  # report periodic progress
 
 PUBSUB_SCOPES = ['https://www.googleapis.com/auth/pubsub']
 NUM_RETRIES = 3
+INCIDENT_TYPES = ['Traffic Hazard - Vehicle', 'Traffic Collision - No Details',
+                  'Traffic Collision - No Injuries',
+                  'Traffic Collision - Ambulance Responding',
+                  'Hit and Run - No Injuries',
+                  'Vehicle Fire', 'Pedestrian on a Highway', 'Animal on Road']
+INCIDENT_DURATION_RANGE = 60  # max in minutes of a randomly generated duration
+# The following value is used to determine whether an
+# 'incident' is generated for a given reading. Increase/decrease this value
+# to increase/decrease the likelihood that an incident is generated for a given
+# reading.
+INCIDENT_THRESH = 0.005
 
 
 def create_pubsub_client():
@@ -86,6 +103,20 @@ def publish(client, pubsub_topic, data_line):
     return resp
 
 
+def publish_random_incident(client, incident_topic, incident_id,
+                            timestamp, station_id, freeway, travel_direction):
+    """Generate a random traffic 'incident' based on information from the
+    given traffic reading, and publish it to the specified 'incidents' pubsub
+    topic."""
+    duration = random.randrange(INCIDENT_DURATION_RANGE)  # minutes
+    cause = INCIDENT_TYPES[random.randrange(len(INCIDENT_TYPES))]
+    data_line = '%s,%s,%s,%s,%s,%s,%s' % (incident_id, timestamp, duration,
+                                          station_id, freeway,
+                                          travel_direction, cause)
+    print "incident data: %s" % data_line
+    publish(client, incident_topic, data_line)
+
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--replay", help="Replay in 'real time'",
@@ -93,17 +124,30 @@ def main(argv):
     parser.add_argument("--current",
                         help="Use date adjusted from script start time",
                         action="store_true")
+    parser.add_argument("--incidents",
+                        help="Whether to generate and publish (fake) " +
+                        "traffic incidents. Requires a second PubSub topic " +
+                        "to be specified.",
+                        action="store_true")
     parser.add_argument("--filename", help="input filename")
     parser.add_argument("--num_lines", type=int, default=0,
                         help="The number of lines to process. " +
                         "0 indicates all.")
-    parser.add_argument("--topic", default=TOPIC,
-                        help="The pubsub topic to publish to. " +
+    parser.add_argument("--topic", default=TRAFFIC_TOPIC,
+                        help="The pubsub 'traffic' topic to publish to. " +
                         "Should already exist.")
+    parser.add_argument("--incident_topic", default=INCIDENT_TOPIC,
+                        help="The pubsub 'incident' topic to publish to. " +
+                        "Only used if the --incidents flag is set. " +
+                        "If so, should already exist.")
     args = parser.parse_args()
 
     pubsub_topic = args.topic
-    print "Publishing to pubsub topic: %s" % pubsub_topic
+    print "Publishing to pubsub 'traffic' topic: %s" % pubsub_topic
+    incidents = args.incidents
+    if incidents:
+        incident_topic = args.incident_topic
+        print "Publishing to pubsub 'incident' topic: %s" % incident_topic
     filename = args.filename
     print "filename: %s" % filename
     replay = args.replay
@@ -123,8 +167,9 @@ def main(argv):
     prev_date = dt
     restart_time = now
     line_count = 0
+    incident_count = 0
 
-    print "processing %s" % filename
+    print "processing %s" % filename  # process the traffic data file
     with open(filename) as data_file:
         reader = csv.reader(data_file)
         for line in reader:
@@ -155,6 +200,23 @@ def main(argv):
                     print "restart_time is set to: %s" % restart_time
                 prev_date = orig_date
                 publish(client, pubsub_topic, ",".join(line))
+                if incidents:  # if generating traffic 'incidents' as well
+                    # randomly determine whether we'll generate an incident
+                    # associated with this reading.
+                    rand = random.random()
+                    if rand < INCIDENT_THRESH:
+                        print "Generating a traffic incident for %s." % line
+                        print "rand: %s" % (rand)
+                        # grab the timestring, station id, freeway, and
+                        # direction of travel.
+                        # Then generate some 'incident' data and publish it to
+                        # the incident topic.  Use the incident count as a
+                        # simplistic id.
+                        incident_count += 1
+                        publish_random_incident(client, incident_topic,
+                                                incident_count,
+                                                line[0], line[1], line[2],
+                                                line[3])
             except ValueError, e:
                 sys.stderr.write("---Error: %s for %s\n" % (e, line))
 
