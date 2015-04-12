@@ -94,17 +94,79 @@ def create_pubsub_client():
     return discovery.build('pubsub', 'v1beta2', http=http)
 
 
-def publish(client, pubsub_topic, data_line):
+def publish(client, pubsub_topic, data_line, msg_attributes=None):
     """Publish to the given pubsub topic."""
     pub = base64.urlsafe_b64encode(data_line)
-    body = {'messages': [{'data': pub}]}
+    msg_payload = {'data': pub}
+    if msg_attributes:
+        msg_payload['attributes'] = msg_attributes
+    body = {'messages': [msg_payload]}
     resp = client.projects().topics().publish(
         topic=pubsub_topic, body=body).execute(num_retries=NUM_RETRIES)
     return resp
 
 
+def process_current_mode(orig_date, diff, line, replay, random_delays):
+    """When using --current flag, modify original data to generate updated time
+    information."""
+    ms_delay = 600000  # 10 mins in ms
+    epoch = datetime.datetime(1970, 1, 1)
+    if replay:  # use adjusted date from line of data
+        new_date = orig_date + diff
+        line[0] = new_date.strftime("%Y-%m-%d %H:%M:%S")
+        ts_int = int(
+            ((new_date - epoch).total_seconds() * 1000) +
+            new_date.microsecond/1000)
+        # 'random_delays' indicates whether to include random apparent delays
+        # in published data
+        if random_delays and random.random() < .005:
+            ts_int -= ms_delay  # generate 10-min apparent delay
+            print line
+            line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
+            print ("Delaying ts attr %s, %s, %s" %
+                   (ts_int,
+                    datetime.datetime.utcfromtimestamp(ts_int/1000), line))
+        return (line, str(ts_int))
+    else:  # simply using current time
+        currtime = datetime.datetime.utcnow()
+        ts_int = int(
+            ((currtime - epoch).total_seconds() * 1000) +
+            currtime.microsecond/1000)
+        line[0] = currtime.strftime("%Y-%m-%d %H:%M:%S")
+        # 'random_delays' indicates whether to include random apparent delays
+        # in published data
+        if random_delays and random.random() < .005:
+            ts_int -= ms_delay  # generate 10-min apparent delay
+            print line
+            line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
+            print ("Delaying ts attr %s, %s, %s" %
+                   (ts_int, datetime.datetime.utcfromtimestamp(ts_int/1000),
+                    line))
+        return (line, str(ts_int))
+
+
+def process_noncurrent_mode(orig_date, line, random_delays):
+    """Called when not using --current flag; retaining original time
+    information in data."""
+    ms_delay = 600000  # 10 mins in ms
+    epoch = datetime.datetime(1970, 1, 1)
+    ts_int = int(
+        ((orig_date - epoch).total_seconds() * 1000) +
+        orig_date.microsecond/1000)
+    # 'random_delays' indicates whether to include random apparent delays
+    # in published data
+    if random_delays and random.random() < .005:
+        ts_int -= ms_delay  # generate 10-min apparent delay
+        print line
+        line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
+        print ("Delaying ts attr %s, %s, %s" %
+               (ts_int, datetime.datetime.utcfromtimestamp(ts_int/1000), line))
+    return (line, str(ts_int))
+
+
 def publish_random_incident(client, incident_topic, incident_id,
-                            timestamp, station_id, freeway, travel_direction):
+                            timestamp, station_id, freeway, travel_direction,
+                            msg_attributes=None):
     """Generate a random traffic 'incident' based on information from the
     given traffic reading, and publish it to the specified 'incidents' pubsub
     topic."""
@@ -114,7 +176,7 @@ def publish_random_incident(client, incident_topic, incident_id,
                                           station_id, freeway,
                                           travel_direction, cause)
     print "incident data: %s" % data_line
-    publish(client, incident_topic, data_line)
+    publish(client, incident_topic, data_line, msg_attributes)
 
 
 def main(argv):
@@ -122,12 +184,17 @@ def main(argv):
     parser.add_argument("--replay", help="Replay in 'real time'",
                         action="store_true")
     parser.add_argument("--current",
-                        help="Use date adjusted from script start time",
+                        help="Use date adjusted from script start time.",
                         action="store_true")
     parser.add_argument("--incidents",
                         help="Whether to generate and publish (fake) " +
                         "traffic incidents. Requires a second PubSub topic " +
                         "to be specified.",
+                        action="store_true")
+    parser.add_argument("--random_delays",
+                        help="Whether to randomly alter the data to " +
+                        "sometimes introduce delays between log date and " +
+                        "publish timestamp.",
                         action="store_true")
     parser.add_argument("--filename", help="input filename")
     parser.add_argument("--num_lines", type=int, default=0,
@@ -145,6 +212,7 @@ def main(argv):
     pubsub_topic = args.topic
     print "Publishing to pubsub 'traffic' topic: %s" % pubsub_topic
     incidents = args.incidents
+    random_delays = args.random_delays
     if incidents:
         incident_topic = args.incident_topic
         print "Publishing to pubsub 'incident' topic: %s" % incident_topic
@@ -180,12 +248,17 @@ def main(argv):
                     break
             if (line_count % LINE_BATCHES) == 0:
                 print "%s lines processed" % line_count
+            ts = ""
             try:
                 timestring = line[0]
                 orig_date = parse(timestring)
-                if current:  # if altering date to replay from start time
-                    new_date = orig_date + diff
-                    line[0] = new_date.strftime("%Y-%m-%d %H:%M:%S")
+                if current:  # if using --current flag
+                    (line, ts) = process_current_mode(
+                        orig_date, diff, line, replay, random_delays)
+                else:  # not using --current flag
+                    (line, ts) = process_noncurrent_mode(
+                        orig_date, line, random_delays)
+
                 if replay and orig_date != prev_date:
                     date_delta = orig_date - prev_date
                     print "date delta: %s" % date_delta.total_seconds()
@@ -199,7 +272,8 @@ def main(argv):
                     restart_time = datetime.datetime.utcnow()
                     print "restart_time is set to: %s" % restart_time
                 prev_date = orig_date
-                publish(client, pubsub_topic, ",".join(line))
+                msg_attributes = {'timestamp': ts}
+                publish(client, pubsub_topic, ",".join(line), msg_attributes)
                 if incidents:  # if generating traffic 'incidents' as well
                     # randomly determine whether we'll generate an incident
                     # associated with this reading.
@@ -214,7 +288,7 @@ def main(argv):
                         publish_random_incident(client, incident_topic,
                                                 incident_count,
                                                 line[0], line[1], line[2],
-                                                line[3])
+                                                line[3], msg_attributes)
             except ValueError, e:
                 sys.stderr.write("---Error: %s for %s\n" % (e, line))
 
