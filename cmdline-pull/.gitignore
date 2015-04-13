@@ -2,6 +2,4 @@ bin
 include
 lib
 local
-pubsub.dat
-client_secrets.json
-
+share
