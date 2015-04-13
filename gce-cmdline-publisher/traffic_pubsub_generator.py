@@ -96,8 +96,8 @@ def create_pubsub_client():
 
 def publish(client, pubsub_topic, data_line, msg_attributes=None):
     """Publish to the given pubsub topic."""
-    pub = base64.urlsafe_b64encode(data_line)
-    msg_payload = {'data': pub}
+    data = base64.urlsafe_b64encode(data_line)
+    msg_payload = {'data': data}
     if msg_attributes:
         msg_payload['attributes'] = msg_attributes
     body = {'messages': [msg_payload]}
@@ -106,10 +106,25 @@ def publish(client, pubsub_topic, data_line, msg_attributes=None):
     return resp
 
 
+def maybe_add_delay(line, ts_int):
+    """Randomly determine whether to simulate a publishing delay with this
+    data element."""
+    # 10 mins in ms.  Edit this value to change the amount of delay.
+    ms_delay = 600000
+    threshold = .005
+    if random.random() < threshold:
+        ts_int -= ms_delay  # generate 10-min apparent delay
+        print line
+        line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
+        print ("Delaying ts attr %s, %s, %s" %
+               (ts_int, datetime.datetime.utcfromtimestamp(ts_int/1000),
+                line))
+    return (line, ts_int)
+
+
 def process_current_mode(orig_date, diff, line, replay, random_delays):
     """When using --current flag, modify original data to generate updated time
     information."""
-    ms_delay = 600000  # 10 mins in ms
     epoch = datetime.datetime(1970, 1, 1)
     if replay:  # use adjusted date from line of data
         new_date = orig_date + diff
@@ -119,13 +134,8 @@ def process_current_mode(orig_date, diff, line, replay, random_delays):
             new_date.microsecond/1000)
         # 'random_delays' indicates whether to include random apparent delays
         # in published data
-        if random_delays and random.random() < .005:
-            ts_int -= ms_delay  # generate 10-min apparent delay
-            print line
-            line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
-            print ("Delaying ts attr %s, %s, %s" %
-                   (ts_int,
-                    datetime.datetime.utcfromtimestamp(ts_int/1000), line))
+        if random_delays:
+            (line, ts_int) = maybe_add_delay(line, ts_int)
         return (line, str(ts_int))
     else:  # simply using current time
         currtime = datetime.datetime.utcnow()
@@ -135,32 +145,22 @@ def process_current_mode(orig_date, diff, line, replay, random_delays):
         line[0] = currtime.strftime("%Y-%m-%d %H:%M:%S")
         # 'random_delays' indicates whether to include random apparent delays
         # in published data
-        if random_delays and random.random() < .005:
-            ts_int -= ms_delay  # generate 10-min apparent delay
-            print line
-            line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
-            print ("Delaying ts attr %s, %s, %s" %
-                   (ts_int, datetime.datetime.utcfromtimestamp(ts_int/1000),
-                    line))
+        if random_delays:
+            (line, ts_int) = maybe_add_delay(line, ts_int)
         return (line, str(ts_int))
 
 
 def process_noncurrent_mode(orig_date, line, random_delays):
     """Called when not using --current flag; retaining original time
     information in data."""
-    ms_delay = 600000  # 10 mins in ms
     epoch = datetime.datetime(1970, 1, 1)
     ts_int = int(
         ((orig_date - epoch).total_seconds() * 1000) +
         orig_date.microsecond/1000)
     # 'random_delays' indicates whether to include random apparent delays
     # in published data
-    if random_delays and random.random() < .005:
-        ts_int -= ms_delay  # generate 10-min apparent delay
-        print line
-        line[0] = "%s" % datetime.datetime.utcfromtimestamp(ts_int/1000)
-        print ("Delaying ts attr %s, %s, %s" %
-               (ts_int, datetime.datetime.utcfromtimestamp(ts_int/1000), line))
+    if random_delays:
+        (line, ts_int) = maybe_add_delay(line, ts_int)
     return (line, str(ts_int))
 
 
