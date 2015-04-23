@@ -96,7 +96,7 @@ def create_pubsub_client():
 
 def publish(client, pubsub_topic, data_line, msg_attributes=None):
     """Publish to the given pubsub topic."""
-    data = base64.urlsafe_b64encode(data_line)
+    data = base64.b64encode(data_line)
     msg_payload = {'data': data}
     if msg_attributes:
         msg_payload['attributes'] = msg_attributes

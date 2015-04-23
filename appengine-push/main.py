@@ -133,7 +133,7 @@ class SendMessage(webapp2.RequestHandler):
             topic_name = pubsub_utils.get_full_topic_name()
             body = {
                 'messages': [{
-                    'data': base64.urlsafe_b64encode(message.encode('utf-8'))
+                    'data': base64.b64encode(message.encode('utf-8'))
                 }]
             }
             client.projects().topics().publish(
@@ -151,8 +151,7 @@ class ReceiveMessage(webapp2.RequestHandler):
         # Store the message in the datastore.
         logging.debug('Post body: {}'.format(self.request.body))
         message = json.loads(urllib.unquote(self.request.body).rstrip('='))
-        message_body = base64.urlsafe_b64decode(
-            str(message['message']['data']))
+        message_body = base64.b64decode(str(message['message']['data']))
         pubsub_message = PubSubMessage(message=message_body)
         pubsub_message.put()
 
