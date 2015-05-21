@@ -27,6 +27,7 @@ sys.path.append(os.path.dirname(__file__))
 from pubsub_sample import main
 
 
+TEST_PROJECT_ID_ENV = 'TEST_PROJECT_ID'
 DEFAULT_TEST_PROJECT_ID = "cloud-pubsub-sample-test"
 
 
@@ -43,7 +44,7 @@ def captured_output():
 
 def get_project_id():
     """Returns project id to use in the tests."""
-    return DEFAULT_TEST_PROJECT_ID
+    return os.getenv(TEST_PROJECT_ID_ENV, DEFAULT_TEST_PROJECT_ID)
 
 
 class PubsubSampleTestCase(unittest.TestCase):
