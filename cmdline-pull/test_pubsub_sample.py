@@ -1,0 +1,86 @@
+# Copyright 2015 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Test classes for the command line Cloud Pub/Sub sample.."""
+
+
+import contextlib
+import os
+import StringIO
+import sys
+import unittest
+import uuid
+
+sys.path.append(os.path.dirname(__file__))
+
+from pubsub_sample import main
+
+
+DEFAULT_TEST_PROJECT_ID = "cloud-pubsub-sample-test"
+
+
+@contextlib.contextmanager
+def captured_output():
+    new_out, new_err = StringIO.StringIO(), StringIO.StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+
+def get_project_id():
+    """Returns project id to use in the tests."""
+    return DEFAULT_TEST_PROJECT_ID
+
+
+class PubsubSampleTestCase(unittest.TestCase):
+    """A test case for pubsub_sample.py."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a new topic and subscription with a random name."""
+        random_id = uuid.uuid4()
+        cls.topic = 'topic-%s' % random_id
+        cls.sub = 'sub-%s' % random_id
+        main(['pubsub_sample.py', get_project_id(), 'create_topic',
+              cls.topic])
+        main(['pubsub_sample.py', get_project_id(), 'create_subscription',
+             cls.sub, cls.topic])
+
+    @classmethod
+    def tearDownClass(cls):
+        """Deletes resources used in the tests."""
+        main(['pubsub_sample.py', get_project_id(), 'delete_topic', cls.topic])
+        main(['pubsub_sample.py', get_project_id(), 'delete_subscription',
+              cls.sub])
+
+    def test_list_topics(self):
+        """A test for list_topics action."""
+        expected_topic = ('projects/%s/topics/%s'
+                          % (get_project_id(), self.topic))
+        with captured_output() as (out, _):
+            main(['pubsub_sample.py', get_project_id(), 'list_topics'])
+        output = out.getvalue().strip()
+        self.assertTrue(expected_topic in output)
+
+    def test_list_subscriptions(self):
+        """A test for list_subscriptions action."""
+        expected_sub = ('projects/%s/subscriptions/%s'
+                        % (get_project_id(), self.sub))
+        with captured_output() as (out, _):
+            main(['pubsub_sample.py', get_project_id(), 'list_subscriptions'])
+        output = out.getvalue().strip()
+        self.assertTrue(expected_sub in output)

@@ -95,8 +95,9 @@ def list_topics(client, args):
         resp = client.projects().topics().list(
             project='projects/{}'.format(args[0]),
             pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
-        for topic in resp['topics']:
-            print topic['name']
+        if 'topics' in resp:
+            for topic in resp['topics']:
+                print topic['name']
         next_page_token = resp.get('nextPageToken')
         if not next_page_token:
             break
