@@ -23,11 +23,13 @@ import logging
 import re
 import urllib
 
-import jinja2
-import webapp2
 from apiclient import errors
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
+
+import jinja2
+
+import webapp2
 
 import constants
 import pubsub_utils

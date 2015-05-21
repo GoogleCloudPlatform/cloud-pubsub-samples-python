@@ -25,8 +25,10 @@ import socket
 import sys
 import time
 
-import httplib2
 from apiclient import discovery
+
+import httplib2
+
 from oauth2client.client import GoogleCredentials
 
 

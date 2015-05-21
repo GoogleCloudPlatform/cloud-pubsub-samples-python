@@ -18,10 +18,12 @@
 
 import os
 
-import httplib2
 from apiclient import discovery
-from google.appengine.api import memcache
 from google.appengine.api import app_identity
+from google.appengine.api import memcache
+
+import httplib2
+
 from oauth2client.client import GoogleCredentials
 
 import constants
