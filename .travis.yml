@@ -1,4 +1,6 @@
 language: python
 install:
         - pip install tox
+before_install:
+        - openssl aes-256-cbc -K $encrypted_a53bb0208314_key -iv $encrypted_a53bb0208314_iv -in client-secret.json.enc -out client-secret.json -d
 script: tox
