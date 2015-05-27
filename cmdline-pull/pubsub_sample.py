@@ -42,7 +42,7 @@ ARG_HELP = '''Available arguments are:
   PROJ delete_subscription SUBSCRIPTION
   PROJ connect_irc TOPIC SERVER CHANNEL
   PROJ publish_message TOPIC MESSAGE
-  PROJ pull_messages SUBSCRIPTION [RETURN_IMMEDIATELY=True/False]
+  PROJ pull_messages SUBSCRIPTION [LOOP=True|False (Default: True)]
 '''
 
 PUBSUB_SCOPES = ["https://www.googleapis.com/auth/pubsub"]
@@ -252,12 +252,9 @@ def pull_messages(client, args):
     """Pulls messages from a given subscription."""
     check_args_length(args, 3)
     subscription = get_full_subscription_name(args[0], args[2])
-    if len(args) > 3:
-        return_immediately = True if args[3] == 'True' else False
-    else:
-        return_immediately = False
+    loop = False if len(args) > 3 and args[3] == 'False' else True
     body = {
-        'returnImmediately': return_immediately,
+        'returnImmediately': False,
         'maxMessages': BATCH_SIZE
     }
     while True:
@@ -280,7 +277,7 @@ def pull_messages(client, args):
             client.projects().subscriptions().acknowledge(
                 subscription=subscription, body=ack_body).execute(
                     num_retries=NUM_RETRIES)
-        if return_immediately:
+        if not loop:
             break
 
 

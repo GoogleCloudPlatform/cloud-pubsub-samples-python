@@ -48,7 +48,8 @@ def get_project_id():
 
 
 class PubsubSampleTestCase(unittest.TestCase):
-    """A test case for creating and listing topics and subscriptions"""
+    """A test case for creating and listing topics and subscriptions.
+    Also tests publishing and pulling messages"""
 
     @classmethod
     def setUpClass(cls):
@@ -59,7 +60,9 @@ class PubsubSampleTestCase(unittest.TestCase):
         main(['pubsub_sample.py', get_project_id(), 'create_topic',
               cls.topic])
         main(['pubsub_sample.py', get_project_id(), 'create_subscription',
-             cls.sub, cls.topic])
+              cls.sub, cls.topic])
+        cls.messages = ['message-1-%s' % uuid.uuid4(), 'message-2-%s' %
+                        uuid.uuid4()]
 
     @classmethod
     def tearDownClass(cls):
@@ -72,7 +75,7 @@ class PubsubSampleTestCase(unittest.TestCase):
         """A test for list_topics action."""
         expected_topic = ('projects/%s/topics/%s'
                           % (get_project_id(), self.topic))
-        with captured_output() as (out, unused_output):
+        with captured_output() as (out, _):
             main(['pubsub_sample.py', get_project_id(), 'list_topics'])
         output = out.getvalue().strip()
         self.assertTrue(expected_topic in output)
@@ -86,45 +89,21 @@ class PubsubSampleTestCase(unittest.TestCase):
         output = out.getvalue().strip()
         self.assertTrue(expected_sub in output)
 
-
-class PubSubPublishAndPullTestCase(unittest.TestCase):
-    """ A test case that tests publishing and pulling messages"""
-
-    @classmethod
-    def setUpClass(cls):
-        """Creates a new topic and subscription. Also generates a random
-        message"""
-        random_id = uuid.uuid4()
-        cls.topic = 'topic-push-pull-%s' % random_id
-        cls.sub = 'sub-push-pull-%s' % random_id
-        main(['pubsub_sample.py', get_project_id(), 'create_topic',
-              cls.topic])
-        main(['pubsub_sample.py', get_project_id(), 'create_subscription',
-             cls.sub, cls.topic])
-        cls.message = 'my-message%s' % random_id
-
-    @classmethod
-    def tearDownClass(cls):
-        """Deletes resources used in the tests."""
-        main(['pubsub_sample.py', get_project_id(), 'delete_topic', cls.topic])
-        main(['pubsub_sample.py', get_project_id(), 'delete_subscription',
-              cls.sub])
-
     def test_publish_message(self):
         """Tries to publish a message and checks the output for the  message"""
-        with captured_output() as (out, unused_output):
-            main(['pubsub_sample.py', get_project_id(), 'publish_message',
-                 self.topic, self.message])
-            output = out.getvalue().strip()
-        print 'Output from publish_message:' + output
-        self.assertTrue(self.message in output)
+        for message in self.messages:
+            with captured_output() as (out, _):
+                main(['pubsub_sample.py', get_project_id(), 'publish_message',
+                      self.topic, message])
+                output = out.getvalue().strip()
+            self.assertTrue(message in output)
 
     def test_pull_message(self):
         """Tries to pull messages from a subscription  and checks to make sure
         it matches the original message"""
-        with captured_output() as (out, unused_output):
+        with captured_output() as (out, _):
             main(['pubsub_sample.py', get_project_id(), 'pull_messages',
-                 self.sub, 'True'])
+                  self.sub, 'False'])
             output = out.getvalue().strip()
-        print 'Output from pull_messages:' + output
-        self.assertTrue(self.message in output)
+        for message in self.messages:
+            self.assertTrue(message in output)
