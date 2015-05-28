@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 Google Inc. All Rights Reserved.
+# Copyright 2014 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,10 +74,11 @@ def list_topics(client, args):
 
 
 def list_subscriptions(client, args):
-    """Show the list of current subscriptions attached to a given topic.
+    """Show the list of current subscriptions.
 
-    If no topic is specified, all current subscriptions associated with a
-    project will be listed."""
+    If a topic is specified, only subscriptions associated with the topic will
+    be listed.
+    """
     next_page_token = None
     while True:
         if args.topic is None:
@@ -116,7 +117,8 @@ def create_subscription(client, args):
     """Create a new subscription to a given topic.
 
     If an endpoint is specified, this function will attach to that
-    endpoint."""
+    endpoint.
+    """
     name = get_full_subscription_name(args.project_name, args.subscription)
     if '/' in args.topic:
         topic_name = args.topic

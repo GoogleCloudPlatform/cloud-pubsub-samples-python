@@ -54,7 +54,8 @@ class PubsubSampleTestCase(unittest.TestCase):
     """A test case for the Pubsub sample.
 
     Define a test case that creates and lists topics and subscriptions.
-    Also tests publishing and pulling messages"""
+    Also tests publishing and pulling messages
+    """
 
     @classmethod
     def setUpClass(cls):
