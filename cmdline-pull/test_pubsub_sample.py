@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright 2015 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 
 """Test classes for the command line Cloud Pub/Sub sample."""
 
@@ -33,6 +35,7 @@ DEFAULT_TEST_PROJECT_ID = "cloud-pubsub-sample-test"
 
 @contextlib.contextmanager
 def captured_output():
+    """Capture output and redirect to sys."""
     new_out, new_err = StringIO.StringIO(), StringIO.StringIO()
     old_out, old_err = sys.stdout, sys.stderr
     try:
@@ -43,12 +46,14 @@ def captured_output():
 
 
 def get_project_id():
-    """Returns project id to use in the tests."""
+    """Return the project id to use in the tests."""
     return os.getenv(TEST_PROJECT_ID_ENV, DEFAULT_TEST_PROJECT_ID)
 
 
 class PubsubSampleTestCase(unittest.TestCase):
-    """A test case for creating and listing topics and subscriptions.
+    """A test case for the Pubsub sample.
+
+    Define a test case that creates and lists topics and subscriptions.
     Also tests publishing and pulling messages"""
 
     @classmethod
@@ -66,13 +71,13 @@ class PubsubSampleTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Deletes resources used in the tests."""
+        """Delete resources used in the tests."""
         main(['pubsub_sample.py', get_project_id(), 'delete_topic', cls.topic])
         main(['pubsub_sample.py', get_project_id(), 'delete_subscription',
               cls.sub])
 
     def test_list_topics(self):
-        """A test for list_topics action."""
+        """Test the list_topics action."""
         expected_topic = ('projects/%s/topics/%s'
                           % (get_project_id(), self.topic))
         with captured_output() as (out, _):
@@ -81,7 +86,7 @@ class PubsubSampleTestCase(unittest.TestCase):
         self.assertTrue(expected_topic in output)
 
     def test_list_subscriptions(self):
-        """A test for list_subscriptions action."""
+        """Test the list_subscriptions action."""
         expected_sub = ('projects/%s/subscriptions/%s'
                         % (get_project_id(), self.sub))
         with captured_output() as (out, _):
@@ -90,7 +95,7 @@ class PubsubSampleTestCase(unittest.TestCase):
         self.assertTrue(expected_sub in output)
 
     def test_publish_message(self):
-        """Tries to publish a message and checks the output for the  message"""
+        """Try to publish a message and check the output for the  message."""
         for message in self.messages:
             with captured_output() as (out, _):
                 main(['pubsub_sample.py', get_project_id(), 'publish_message',
@@ -99,8 +104,7 @@ class PubsubSampleTestCase(unittest.TestCase):
             self.assertTrue(message in output)
 
     def test_pull_message(self):
-        """Tries to pull messages from a subscription  and checks to make sure
-        it matches the original message"""
+        """Try to pull messages from a subscription."""
         with captured_output() as (out, _):
             main(['pubsub_sample.py', get_project_id(), 'pull_messages',
                   self.sub, '-n'])
