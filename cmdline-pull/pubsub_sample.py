@@ -32,25 +32,7 @@ import httplib2
 from oauth2client.client import GoogleCredentials
 
 
-ARG_HELP = '''Available arguments are:
-  PROJ list_topics
-  PROJ create_topic TOPIC
-  PROJ delete_topic TOPIC
-  PROJ list_subscriptions
-  PROJ list_subscriptions_in_topic TOPIC
-  PROJ create_subscription SUBSCRIPTION LINKED_TOPIC [PUSH_ENDPOINT]
-  PROJ delete_subscription SUBSCRIPTION
-  PROJ connect_irc TOPIC SERVER CHANNEL
-  PROJ publish_message TOPIC MESSAGE
-  PROJ pull_messages SUBSCRIPTION [LOOP=True|False (Default: True)]
-'''
-
 PUBSUB_SCOPES = ["https://www.googleapis.com/auth/pubsub"]
-
-ACTIONS = ['list_topics', 'list_subscriptions', 'list_subscriptions_in_topic',
-           'create_topic', 'delete_topic', 'create_subscription',
-           'delete_subscription', 'connect_irc', 'publish_message',
-           'pull_messages']
 
 BOTNAME = 'pubsub-irc-bot/1.0'
 
@@ -59,11 +41,6 @@ PORT = 6667
 NUM_RETRIES = 3
 
 BATCH_SIZE = 10
-
-
-def help():
-    """Shows a help message."""
-    sys.stderr.write(ARG_HELP)
 
 
 def fqrn(resource_type, project, resource):
@@ -81,19 +58,12 @@ def get_full_subscription_name(project, subscription):
     return fqrn('subscriptions', project, subscription)
 
 
-def check_args_length(argv, min):
-    """Checks the arguments length and exits when it's not long enough."""
-    if len(argv) < min:
-        help()
-        sys.exit(1)
-
-
 def list_topics(client, args):
     """Shows the list of current topics."""
     next_page_token = None
     while True:
         resp = client.projects().topics().list(
-            project='projects/{}'.format(args[0]),
+            project='projects/{}'.format(args.project_name),
             pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
         if 'topics' in resp:
             for topic in resp['topics']:
@@ -104,12 +74,19 @@ def list_topics(client, args):
 
 
 def list_subscriptions(client, args):
-    """Shows the list of current subscriptions."""
+    """Shows the list of current subscriptions attached to a given topic, or all
+    current subscriptions if no topic is specified"""
     next_page_token = None
     while True:
-        resp = client.projects().subscriptions().list(
-            project='projects/{}'.format(args[0]),
-            pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
+        if args.topic is None:
+            resp = client.projects().subscriptions().list(
+                project='projects/{}'.format(args.project_name),
+                pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
+        else:
+            topic = get_full_topic_name(args.project_name, args.topic)
+            resp = client.projects().topics().subscriptions().list(
+                topic=topic,
+                pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
         for subscription in resp['subscriptions']:
             print json.dumps(subscription, indent=1)
         next_page_token = resp.get('nextPageToken')
@@ -117,51 +94,33 @@ def list_subscriptions(client, args):
             break
 
 
-def list_subscriptions_in_topic(client, args):
-    """Shows the list of subscriptions attached to a given topic."""
-    next_page_token = None
-    while True:
-        topic = get_full_topic_name(args[0], args[2])
-        resp = client.projects().topics().subscriptions().list(
-            topic=topic,
-            pageToken=next_page_token).execute(num_retries=NUM_RETRIES)
-        for subscription in resp['subscriptions']:
-            print subscription
-        next_page_token = resp.get('nextPageToken')
-        if not next_page_token:
-            break
-
-
 def create_topic(client, args):
     """Creates a new topic."""
-    check_args_length(args, 3)
     topic = client.projects().topics().create(
-        name=get_full_topic_name(args[0], args[2]),
+        name=get_full_topic_name(args.project_name, args.topic),
         body={}).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was created.'.format(topic['name'])
 
 
 def delete_topic(client, args):
     """Deletes a topic."""
-    check_args_length(args, 3)
-    topic = get_full_topic_name(args[0], args[2])
+    topic = get_full_topic_name(args.project_name, args.topic)
     client.projects().topics().delete(
         topic=topic).execute(num_retries=NUM_RETRIES)
     print 'Topic {} was deleted.'.format(topic)
 
 
 def create_subscription(client, args):
-    """Creates a new subscription to a given topic."""
-    check_args_length(args, 4)
-    name = get_full_subscription_name(args[0], args[2])
-    if '/' in args[3]:
-        topic_name = args[3]
+    """Creates a new subscription to a given topic. If an endpoint is
+    specified, attaches to that endpoint"""
+    name = get_full_subscription_name(args.project_name, args.subscription)
+    if '/' in args.topic:
+        topic_name = args.topic
     else:
-        topic_name = get_full_topic_name(args[0], args[3])
+        topic_name = get_full_topic_name(args.project_name, args.topic)
     body = {'topic': topic_name}
-    if len(args) == 5:
-        # push_endpoint
-        body['pushConfig'] = {'pushEndpoint': args[4]}
+    if args.push_endpoint is not None:
+        body['pushConfig'] = {'pushEndpoint': args.push_endpoint}
     subscription = client.projects().subscriptions().create(
         name=name, body=body).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was created.'.format(subscription['name'])
@@ -169,8 +128,8 @@ def create_subscription(client, args):
 
 def delete_subscription(client, args):
     """Deletes a subscription."""
-    check_args_length(args, 3)
-    subscription = get_full_subscription_name(args[0], args[2])
+    subscription = get_full_subscription_name(args.project_name,
+                                              args.subscription)
     client.projects().subscriptions().delete(
         subscription=subscription).execute(num_retries=NUM_RETRIES)
     print 'Subscription {} was deleted.'.format(subscription)
@@ -193,11 +152,10 @@ def _check_connection(irc):
 
 def connect_irc(client, args):
     """Connects to an IRC channel and publishes messages."""
-    check_args_length(args, 5)
-    server = args[3]
-    channel = args[4]
-    topic = get_full_topic_name(args[0], args[2])
-    nick = 'bot-{}'.format(args[0])
+    server = args.server
+    channel = args.channel
+    topic = get_full_topic_name(args.project_name, args.topic)
+    nick = 'bot-{}'.format(args.project_name)
     irc = socket.socket()
     print 'Connecting to {}'.format(server)
     irc.connect((server, PORT))
@@ -238,21 +196,20 @@ def connect_irc(client, args):
 
 def publish_message(client, args):
     """Publish a message to a given topic."""
-    check_args_length(args, 4)
-    topic = get_full_topic_name(args[0], args[2])
-    message = base64.b64encode(str(args[3]))
+    topic = get_full_topic_name(args.project_name, args.topic)
+    message = base64.b64encode(str(args.message))
     body = {'messages': [{'data': message}]}
     resp = client.projects().topics().publish(
         topic=topic, body=body).execute(num_retries=NUM_RETRIES)
     print ('Published a message "{}" to a topic {}. The message_id was {}.'
-           .format(args[3], topic, resp.get('messageIds')[0]))
+           .format(args.message, topic, resp.get('messageIds')[0]))
 
 
 def pull_messages(client, args):
     """Pulls messages from a given subscription."""
-    check_args_length(args, 3)
-    subscription = get_full_subscription_name(args[0], args[2])
-    loop = False if len(args) > 3 and args[3] == 'False' else True
+    subscription = get_full_subscription_name(
+        args.project_name,
+        args.subscription)
     body = {
         'returnImmediately': False,
         'maxMessages': BATCH_SIZE
@@ -277,31 +234,101 @@ def pull_messages(client, args):
             client.projects().subscriptions().acknowledge(
                 subscription=subscription, body=ack_body).execute(
                     num_retries=NUM_RETRIES)
-        if not loop:
+        if args.no_loop:
             break
 
 
 def main(argv):
     """Invokes a subcommand."""
-    argparser = argparse.ArgumentParser(add_help=False)
-    argparser.add_argument('args', nargs='*', help=ARG_HELP)
+    # Main parser setup
+    parser = argparse.ArgumentParser(
+        description='A sample command line interface for Pub/Sub')
+    parser.add_argument('project_name', help='Project name in console')
 
+    topic_parser = argparse.ArgumentParser(add_help=False)
+    topic_parser.add_argument('topic', help='Topic name')
+    subscription_parser = argparse.ArgumentParser(add_help=False)
+    subscription_parser.add_argument('subscription', help='Subscription name')
+
+    # Sub command parsers
+    sub_parsers = parser.add_subparsers(
+        title='List of possible commands', metavar='<command>')
+
+    list_topics_str = 'List topics in project'
+    parser_list_topics = sub_parsers.add_parser(
+        'list_topics', description=list_topics_str, help=list_topics_str)
+    parser_list_topics.set_defaults(func=list_topics)
+
+    create_topic_str = 'Create a topic with specified name'
+    parser_create_topic = sub_parsers.add_parser(
+        'create_topic', parents=[topic_parser],
+        description=create_topic_str, help=create_topic_str)
+    parser_create_topic.set_defaults(func=create_topic)
+
+    delete_topic_str = 'Delete a topic with specified name'
+    parser_delete_topic = sub_parsers.add_parser(
+        'delete_topic', parents=[topic_parser],
+        description=delete_topic_str, help=delete_topic_str)
+    parser_delete_topic.set_defaults(func=delete_topic)
+
+    list_subscriptions_str = 'List subscriptions in project'
+    parser_list_subscriptions = sub_parsers.add_parser(
+        'list_subscriptions',
+        description=list_subscriptions_str, help=list_subscriptions_str)
+    parser_list_subscriptions.set_defaults(func=list_subscriptions)
+    parser_list_subscriptions.add_argument(
+        '-t', '--topic', help='Show only subscriptions for given topic')
+
+    create_subscription_str = 'Create a subscription to the specified topic'
+    parser_create_subscription = sub_parsers.add_parser(
+        'create_subscription', parents=[subscription_parser, topic_parser],
+        description=create_subscription_str, help=create_subscription_str)
+    parser_create_subscription.set_defaults(func=create_subscription)
+    parser_create_subscription.add_argument(
+        '-p', '--push_endpoint',
+        help='Push endpoint to which this method attaches')
+
+    delete_subscription_str = 'Delete the specified subscription'
+    parser_delete_subscription = sub_parsers.add_parser(
+        'delete_subscription', parents=[subscription_parser],
+        description=delete_subscription_str, help=delete_subscription_str)
+    parser_delete_subscription.set_defaults(func=delete_subscription)
+
+    connect_irc_str = 'Connect to the topic IRC channel'
+    parser_connect_irc = sub_parsers.add_parser(
+        'connect_irc', parents=[topic_parser],
+        description=connect_irc_str, help=connect_irc_str)
+    parser_connect_irc.set_defaults(func=connect_irc)
+    parser_connect_irc.add_argument('server', help='Server name')
+    parser_connect_irc.add_argument('channel', help='Channel name')
+
+    publish_message_str = 'Publish a message to specified topic'
+    parser_publish_message = sub_parsers.add_parser(
+        'publish_message', parents=[topic_parser],
+        description=publish_message_str, help=publish_message_str)
+    parser_publish_message.set_defaults(func=publish_message)
+    parser_publish_message.add_argument('message', help='Message to publish')
+
+    pull_messages_str = 'Pull messages for given subscription.' \
+        'Loops continuously unless otherwise specified'
+    parser_pull_messages = sub_parsers.add_parser(
+        'pull_messages', parents=[subscription_parser],
+        description=pull_messages_str, help=pull_messages_str)
+    parser_pull_messages.set_defaults(func=pull_messages)
+    parser_pull_messages.add_argument(
+        '-n', '--no_loop', action='store_true',
+        help='Execute only once and do not loop')
+
+    # Google API setup
     credentials = GoogleCredentials.get_application_default()
     if credentials.create_scoped_required():
         credentials = credentials.create_scoped(PUBSUB_SCOPES)
     http = httplib2.Http()
     credentials.authorize(http=http)
-
     client = discovery.build('pubsub', 'v1beta2', http=http)
-    flags = argparser.parse_args(argv[1:])
-    args = flags.args
-    check_args_length(args, 2)
 
-    if args[1] in ACTIONS:
-        globals().get(args[1])(client, args)
-    else:
-        help()
-        sys.exit(1)
+    args = parser.parse_args(argv[1:])
+    args.func(client, args)
 
 
 if __name__ == '__main__':

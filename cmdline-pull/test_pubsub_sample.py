@@ -103,7 +103,7 @@ class PubsubSampleTestCase(unittest.TestCase):
         it matches the original message"""
         with captured_output() as (out, _):
             main(['pubsub_sample.py', get_project_id(), 'pull_messages',
-                  self.sub, 'False'])
+                  self.sub, '-n'])
             output = out.getvalue().strip()
         for message in self.messages:
             self.assertTrue(message in output)
