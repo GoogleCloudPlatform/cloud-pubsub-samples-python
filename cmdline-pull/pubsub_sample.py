@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014 Google Inc. All Rights Reserved.
+# Copyright 2015 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,22 +44,22 @@ BATCH_SIZE = 10
 
 
 def fqrn(resource_type, project, resource):
-    """Returns a fully qualified resource name for Cloud Pub/Sub."""
+    """Return a fully qualified resource name for Cloud Pub/Sub."""
     return "projects/{}/{}/{}".format(project, resource_type, resource)
 
 
 def get_full_topic_name(project, topic):
-    """Returns a fully qualified topic name."""
+    """Return a fully qualified topic name."""
     return fqrn('topics', project, topic)
 
 
 def get_full_subscription_name(project, subscription):
-    """Returns a fully qualified subscription name."""
+    """Return a fully qualified subscription name."""
     return fqrn('subscriptions', project, subscription)
 
 
 def list_topics(client, args):
-    """Shows the list of current topics."""
+    """Show the list of current topics."""
     next_page_token = None
     while True:
         resp = client.projects().topics().list(
@@ -74,8 +74,10 @@ def list_topics(client, args):
 
 
 def list_subscriptions(client, args):
-    """Shows the list of current subscriptions attached to a given topic, or all
-    current subscriptions if no topic is specified"""
+    """Show the list of current subscriptions attached to a given topic.
+
+    If no topic is specified, all current subscriptions associated with a
+    project will be listed."""
     next_page_token = None
     while True:
         if args.topic is None:
@@ -95,7 +97,7 @@ def list_subscriptions(client, args):
 
 
 def create_topic(client, args):
-    """Creates a new topic."""
+    """Create a new topic."""
     topic = client.projects().topics().create(
         name=get_full_topic_name(args.project_name, args.topic),
         body={}).execute(num_retries=NUM_RETRIES)
@@ -103,7 +105,7 @@ def create_topic(client, args):
 
 
 def delete_topic(client, args):
-    """Deletes a topic."""
+    """Delete a topic."""
     topic = get_full_topic_name(args.project_name, args.topic)
     client.projects().topics().delete(
         topic=topic).execute(num_retries=NUM_RETRIES)
@@ -111,8 +113,10 @@ def delete_topic(client, args):
 
 
 def create_subscription(client, args):
-    """Creates a new subscription to a given topic. If an endpoint is
-    specified, attaches to that endpoint"""
+    """Create a new subscription to a given topic.
+
+    If an endpoint is specified, this function will attach to that
+    endpoint."""
     name = get_full_subscription_name(args.project_name, args.subscription)
     if '/' in args.topic:
         topic_name = args.topic
@@ -127,7 +131,7 @@ def create_subscription(client, args):
 
 
 def delete_subscription(client, args):
-    """Deletes a subscription."""
+    """Delete a subscription."""
     subscription = get_full_subscription_name(args.project_name,
                                               args.subscription)
     client.projects().subscriptions().delete(
@@ -136,7 +140,7 @@ def delete_subscription(client, args):
 
 
 def _check_connection(irc):
-    """Checks a connection to an IRC channel."""
+    """Check a connection to an IRC channel."""
     readbuffer = ''
     while True:
         readbuffer = readbuffer + irc.recv(1024)
@@ -151,7 +155,7 @@ def _check_connection(irc):
 
 
 def connect_irc(client, args):
-    """Connects to an IRC channel and publishes messages."""
+    """Connect to an IRC channel and publishe messages."""
     server = args.server
     channel = args.channel
     topic = get_full_topic_name(args.project_name, args.topic)
@@ -206,7 +210,7 @@ def publish_message(client, args):
 
 
 def pull_messages(client, args):
-    """Pulls messages from a given subscription."""
+    """Pull messages from a given subscription."""
     subscription = get_full_subscription_name(
         args.project_name,
         args.subscription)
@@ -239,7 +243,7 @@ def pull_messages(client, args):
 
 
 def main(argv):
-    """Invokes a subcommand."""
+    """Invoke a subcommand."""
     # Main parser setup
     parser = argparse.ArgumentParser(
         description='A sample command line interface for Pub/Sub')
