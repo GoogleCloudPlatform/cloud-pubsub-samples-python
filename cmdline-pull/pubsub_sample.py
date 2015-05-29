@@ -229,7 +229,7 @@ def pull_messages(client, args):
             time.sleep(0.5)
             continue
         receivedMessages = resp.get('receivedMessages')
-        if receivedMessages is not None:
+        if receivedMessages:
             ack_ids = []
             for receivedMessage in receivedMessages:
                 message = receivedMessage.get('message')
@@ -315,8 +315,8 @@ def main(argv):
     parser_publish_message.set_defaults(func=publish_message)
     parser_publish_message.add_argument('message', help='Message to publish')
 
-    pull_messages_str = 'Pull messages for given subscription.' \
-        'Loops continuously unless otherwise specified'
+    pull_messages_str = ('Pull messages for given subscription. '
+                         'Loops continuously unless otherwise specified')
     parser_pull_messages = sub_parsers.add_parser(
         'pull_messages', parents=[subscription_parser],
         description=pull_messages_str, help=pull_messages_str)
