@@ -22,10 +22,12 @@ with Python.
 Here are instructions to run the tests. You need a cloud project with
 Cloud Pub/Sub enabled.
 
+```bash
 $ pip install tox
 $ export GOOGLE_APPLICATION_CREDENTIALS=your-service-account-json-file
 $ export TEST_PROJECT_ID={YOUR_PROJECT_ID}
 $ tox
+```
 
 ## Licensing
 
