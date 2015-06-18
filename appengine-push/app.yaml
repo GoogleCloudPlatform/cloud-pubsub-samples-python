@@ -1,6 +1,5 @@
 runtime: python27
 api_version: 1
-version: 1
 threadsafe: true
 
 handlers:
@@ -10,7 +9,6 @@ handlers:
   script: main.APPLICATION
 - url: /.*
   script: main.APPLICATION
-  login: admin
 
 libraries:
 - name: jinja2
