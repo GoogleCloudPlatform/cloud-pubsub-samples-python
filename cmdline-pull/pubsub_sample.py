@@ -225,8 +225,9 @@ def pull_messages(client, args):
             resp = client.projects().subscriptions().pull(
                 subscription=subscription, body=body).execute(
                     num_retries=NUM_RETRIES)
-        except Exception:
+        except Exception as e:
             time.sleep(0.5)
+            print e
             continue
         receivedMessages = resp.get('receivedMessages')
         if receivedMessages:

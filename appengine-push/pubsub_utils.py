@@ -21,6 +21,7 @@ import os
 from apiclient import discovery
 from google.appengine.api import app_identity
 from google.appengine.api import memcache
+from google.appengine.api import modules
 
 import httplib2
 
@@ -75,9 +76,14 @@ def get_app_subscription_name():
 
 
 def get_app_endpoint_url():
-    return 'https://{}.appspot.com/receive_message?token={}'.format(
-        get_project_id(), constants.SUBSCRIPTION_UNIQUE_TOKEN)
+    return 'https://{}-dot-{}.appspot.com/receive_message?token={}'.format(
+        get_current_version(), get_project_id(),
+        constants.SUBSCRIPTION_UNIQUE_TOKEN)
 
 
 def get_project_id():
     return app_identity.get_application_id()
+
+
+def get_current_version():
+    return modules.get_current_version_name()

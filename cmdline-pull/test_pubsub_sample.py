@@ -67,8 +67,11 @@ class PubsubSampleTestCase(unittest.TestCase):
               cls.topic])
         main(['pubsub_sample.py', get_project_id(), 'create_subscription',
               cls.sub, cls.topic])
-        cls.messages = ['message-1-%s' % uuid.uuid4(), 'message-2-%s' %
-                        uuid.uuid4()]
+        # The third message is to check the consistency between base64
+        # variants used on the server side and the client side.
+        cls.messages = ['message-1-%s' % uuid.uuid4(),
+                        'message-2-%s' % uuid.uuid4(),
+                        '=@~']
 
     @classmethod
     def tearDownClass(cls):
