@@ -17,8 +17,8 @@
 """Utility module for this Pub/Sub sample."""
 
 import os
+import threading
 
-from apiclient import discovery
 from google.appengine.api import app_identity
 from google.appengine.api import memcache
 from google.appengine.api import modules
@@ -28,11 +28,15 @@ import httplib2
 from oauth2client.client import GoogleCredentials
 
 import constants
+import discovery_doc
 
 
 APPLICATION_NAME = "google-cloud-pubsub-appengine-sample/1.0"
 
 PUBSUB_SCOPES = ["https://www.googleapis.com/auth/pubsub"]
+
+
+client_store = threading.local()
 
 
 def is_devserver():
@@ -42,8 +46,10 @@ def is_devserver():
 
 def get_client():
     """Creates Pub/Sub client and returns it."""
-    return get_client_from_credentials(
-        GoogleCredentials.get_application_default())
+    if not hasattr(client_store, 'client'):
+        client_store.client = get_client_from_credentials(
+            GoogleCredentials.get_application_default())
+    return client_store.client
 
 
 def get_client_from_credentials(credentials):
@@ -54,7 +60,7 @@ def get_client_from_credentials(credentials):
     http = httplib2.Http(memcache)
     credentials.authorize(http)
 
-    return discovery.build('pubsub', 'v1beta2', http=http)
+    return discovery_doc.DiscoveryDoc.build('pubsub', 'v1', http=http)
 
 
 def get_full_topic_name():
