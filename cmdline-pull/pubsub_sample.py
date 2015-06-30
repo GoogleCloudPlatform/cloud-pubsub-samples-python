@@ -121,6 +121,13 @@ def grant_gmail_push(client, args):
     print 'Granted GMail push notification on the topic {}.'.format(topic)
 
 
+def show_topic_iam_policy(client, args):
+    """Shows the IAM policy on the given topic."""
+    topic = get_full_topic_name(args.project_name, args.topic)
+    resp = client.projects().topics().getIamPolicy(resource=topic).execute()
+    print resp
+
+
 def delete_topic(client, args):
     """Delete a topic."""
     topic = get_full_topic_name(args.project_name, args.topic)
@@ -294,6 +301,14 @@ def main(argv):
         'grant_gmail_push', parents=[topic_parser],
         description=grant_gmail_push_str, help=grant_gmail_push_str)
     parser_grant_gmail_push.set_defaults(func=grant_gmail_push)
+
+    show_topic_iam_policy_str = ('Shows the IAM policy on the specified'
+                                 ' topic')
+    parser_show_topic_iam_policy = sub_parsers.add_parser(
+        'show_topic_iam_policy', parents=[topic_parser],
+        description=show_topic_iam_policy_str,
+        help=show_topic_iam_policy_str)
+    parser_show_topic_iam_policy.set_defaults(func=show_topic_iam_policy)
 
     delete_topic_str = 'Delete a topic with specified name'
     parser_delete_topic = sub_parsers.add_parser(
