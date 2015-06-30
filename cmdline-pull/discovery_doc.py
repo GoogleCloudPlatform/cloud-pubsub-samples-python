@@ -93,7 +93,6 @@ class DiscoveryDoc(object):
                 ret = cls(dat['document'], service_name, version,
                           updated=updated,
                           discovery_service_url=discovery_service_url)
-            print "Read from the cache"
         except IOError:
             # File not found, ignoring
             pass

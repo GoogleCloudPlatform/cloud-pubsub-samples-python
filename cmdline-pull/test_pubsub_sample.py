@@ -115,3 +115,23 @@ class PubsubSampleTestCase(unittest.TestCase):
             output = out.getvalue().strip()
         for message in self.messages:
             self.assertTrue(message in output)
+
+    def test_grant_gmail_push(self):
+        """Try to grant gmail push notification on the topic. """
+        expected_topic = ('projects/%s/topics/%s'
+                          % (get_project_id(), self.topic))
+        with captured_output() as (out, _):
+            main(['pubsub_sample.py', get_project_id(), 'grant_gmail_push',
+                  self.topic])
+        output = out.getvalue().strip()
+        self.assertTrue(expected_topic in output)
+
+    def test_show_topic_iam_policy(self):
+        """Try to show the IAM policy on the topic."""
+        expected_topic = ('projects/%s/topics/%s'
+                          % (get_project_id(), self.topic))
+        with captured_output() as (out, _):
+            main(['pubsub_sample.py', get_project_id(),
+                  'show_topic_iam_policy', self.topic])
+        output = out.getvalue().strip()
+        self.assertTrue(expected_topic in output)

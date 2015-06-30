@@ -42,6 +42,9 @@ NUM_RETRIES = 3
 
 BATCH_SIZE = 10
 
+GMAIL_API_SERVICE_ACCOUNT = ('serviceAccount:gmail-api-push@'
+                             'system.gserviceaccount.com')
+
 
 def fqrn(resource_type, project, resource):
     """Return a fully qualified resource name for Cloud Pub/Sub."""
@@ -109,12 +112,12 @@ def grant_gmail_push(client, args):
     """Grants gmail push notification on this topic."""
     topic = get_full_topic_name(args.project_name, args.topic)
     policy = {
-     'policy': {
-      'bindings': [{
-       'role': 'roles/pubsub.publisher',
-       'members': ['serviceAccount:gmail-api-push@system.gserviceaccount.com'],
-      }],
-     }
+        'policy': {
+            'bindings': [{
+                'role': 'roles/pubsub.publisher',
+                'members': [GMAIL_API_SERVICE_ACCOUNT],
+            }],
+        }
     }
     client.projects().topics().setIamPolicy(
         resource=topic, body=policy).execute()
@@ -125,6 +128,7 @@ def show_topic_iam_policy(client, args):
     """Shows the IAM policy on the given topic."""
     topic = get_full_topic_name(args.project_name, args.topic)
     resp = client.projects().topics().getIamPolicy(resource=topic).execute()
+    print 'IAM policy on the topic {}'.format(topic)
     print resp
 
 
