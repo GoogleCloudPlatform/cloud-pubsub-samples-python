@@ -105,6 +105,22 @@ def create_topic(client, args):
     print 'Topic {} was created.'.format(topic['name'])
 
 
+def grant_gmail_push(client, args):
+    """Grants gmail push notification on this topic."""
+    topic = get_full_topic_name(args.project_name, args.topic)
+    policy = {
+     'policy': {
+      'bindings': [{
+       'role': 'roles/pubsub.publisher',
+       'members': ['serviceAccount:gmail-api-push@system.gserviceaccount.com'],
+      }],
+     }
+    }
+    client.projects().topics().setIamPolicy(
+        resource=topic, body=policy).execute()
+    print 'Granted GMail push notification on the topic {}.'.format(topic)
+
+
 def delete_topic(client, args):
     """Delete a topic."""
     topic = get_full_topic_name(args.project_name, args.topic)
@@ -271,6 +287,13 @@ def main(argv):
         'create_topic', parents=[topic_parser],
         description=create_topic_str, help=create_topic_str)
     parser_create_topic.set_defaults(func=create_topic)
+
+    grant_gmail_push_str = ('Grant gmail push notification on the specified'
+                            ' topic')
+    parser_grant_gmail_push = sub_parsers.add_parser(
+        'grant_gmail_push', parents=[topic_parser],
+        description=grant_gmail_push_str, help=grant_gmail_push_str)
+    parser_grant_gmail_push.set_defaults(func=grant_gmail_push)
 
     delete_topic_str = 'Delete a topic with specified name'
     parser_delete_topic = sub_parsers.add_parser(
