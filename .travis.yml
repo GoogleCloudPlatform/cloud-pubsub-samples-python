@@ -22,7 +22,7 @@ before_install:
           gcloud auth activate-service-account --key-file client-secret.json;
       fi
     - gcloud config set project cloud-pubsub-sample-test
-    - mkdir appengine-push/lib
+    - mkdir -p appengine-push/lib
     - pip install -t appengine-push/lib -r appengine-push/requirements.txt
     - gcloud -q preview app deploy --project cloud-pubsub-sample-test --version=py appengine-push/app.yaml
 
