@@ -23,12 +23,11 @@ from google.appengine.api import app_identity
 from google.appengine.api import memcache
 from google.appengine.api import modules
 
+from googleapiclient import discovery
 import httplib2
-
 from oauth2client.client import GoogleCredentials
 
 import constants
-import discovery_doc
 
 
 APPLICATION_NAME = "google-cloud-pubsub-appengine-sample/1.0"
@@ -60,7 +59,7 @@ def get_client_from_credentials(credentials):
     http = httplib2.Http(memcache)
     credentials.authorize(http)
 
-    return discovery_doc.DiscoveryDoc.build('pubsub', 'v1', http=http)
+    return discovery.build('pubsub', 'v1', http=http)
 
 
 def get_full_topic_name():
