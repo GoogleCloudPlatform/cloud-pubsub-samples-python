@@ -26,7 +26,6 @@ import sys
 import time
 
 from googleapiclient import discovery
-import httplib2
 from oauth2client.client import GoogleCredentials
 
 
@@ -328,9 +327,7 @@ def main(argv):
     credentials = GoogleCredentials.get_application_default()
     if credentials.create_scoped_required():
         credentials = credentials.create_scoped(PUBSUB_SCOPES)
-    http = httplib2.Http()
-    credentials.authorize(http=http)
-    client = discovery.build('pubsub', 'v1', http=http)
+    client = discovery.build('pubsub', 'v1', credentials=credentials)
 
     args = parser.parse_args(argv[1:])
     args.func(client, args)

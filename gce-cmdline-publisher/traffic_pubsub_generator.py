@@ -60,7 +60,6 @@ import time
 
 from apiclient import discovery
 from dateutil.parser import parse
-import httplib2
 from oauth2client.client import GoogleCredentials
 
 # default; set to your traffic topic. Can override on command line.
@@ -89,9 +88,7 @@ def create_pubsub_client():
     credentials = GoogleCredentials.get_application_default()
     if credentials.create_scoped_required():
         credentials = credentials.create_scoped(PUBSUB_SCOPES)
-    http = httplib2.Http()
-    credentials.authorize(http)
-    return discovery.build('pubsub', 'v1beta2', http=http)
+    return discovery.build('pubsub', 'v1beta2', credentials=credentials)
 
 
 def publish(client, pubsub_topic, data_line, msg_attributes=None):
