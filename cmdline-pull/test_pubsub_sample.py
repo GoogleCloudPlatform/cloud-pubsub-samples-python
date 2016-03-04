@@ -24,7 +24,6 @@ import sys
 import unittest
 import uuid
 
-sys.path.append(os.path.dirname(__file__))
 
 from pubsub_sample import main
 
