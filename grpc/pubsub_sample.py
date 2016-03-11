@@ -48,7 +48,7 @@ def auth_func(scoped_creds=SCOPED_CREDS):
 
 
 def make_channel_creds(ssl_creds, auth_func=auth_func):
-    """Returns a channel with credentials collback."""
+    """Returns a channel with credentials callback."""
     call_creds = implementations.metadata_call_credentials(
         lambda ctx, callback: callback(auth_func(), None))
     return implementations.composite_channel_credentials(ssl_creds, call_creds)
