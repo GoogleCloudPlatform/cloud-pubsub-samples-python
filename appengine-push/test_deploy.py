@@ -74,3 +74,13 @@ class IntegrationTestCase(unittest.TestCase):
                 found = True
                 break
         self.assertTrue(found)
+
+    def test_receive_message(self):
+        """Test that the /_ah/push-handlers/ is protected."""
+        (resp, _) = self.http.request(
+            url_for('/_ah/push-handlers/receive_message'), 'POST',
+            headers={'Content-Length': '0'})
+        self.assertEquals(
+            302, resp.status,
+            'status for /_ah/push-handlers/receive_message should be 302, '
+            'actual: {}'.format(resp.status))

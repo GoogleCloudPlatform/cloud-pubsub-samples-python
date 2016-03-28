@@ -5,8 +5,9 @@ threadsafe: true
 handlers:
 - url: /js
   static_dir: js
-- url: /receive_message.*
+- url: /_ah/push-handlers/.*
   script: main.APPLICATION
+  login: admin
 - url: /.*
   script: main.APPLICATION
 
