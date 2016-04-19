@@ -81,9 +81,10 @@ def get_app_subscription_name():
 
 
 def get_app_endpoint_url():
-    return 'https://{}-dot-{}.appspot.com/receive_message?token={}'.format(
-        get_current_version(), get_project_id(),
-        constants.SUBSCRIPTION_UNIQUE_TOKEN)
+    return ('https://{}-dot-{}.appspot.com/_ah/push-handlers'
+            '/receive_message?token={}').format(
+            get_current_version(), get_project_id(),
+            constants.SUBSCRIPTION_UNIQUE_TOKEN)
 
 
 def get_project_id():

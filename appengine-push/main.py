@@ -167,5 +167,5 @@ APPLICATION = webapp2.WSGIApplication(
         ('/', InitHandler),
         ('/fetch_messages', FetchMessages),
         ('/send_message', SendMessage),
-        ('/receive_message', ReceiveMessage),
+        ('/_ah/push-handlers/receive_message', ReceiveMessage),
     ], debug=True)

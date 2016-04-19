@@ -26,7 +26,7 @@ before_install:
           ./google-cloud-sdk/install.sh --usage-reporting false --path-update false --command-completion false &&
           cd ${TRAVIS_BUILD_DIR};
       fi
-    - gcloud -q components update
+    - gcloud -q components update --version 104.0.0
     - gcloud -q config set app/use_appengine_api true
     - if [ -a client-secret.json ]; then
           gcloud auth activate-service-account --key-file client-secret.json;
