@@ -26,15 +26,14 @@ before_install:
           ./google-cloud-sdk/install.sh --usage-reporting false --path-update false --command-completion false &&
           cd ${TRAVIS_BUILD_DIR};
       fi
-    - gcloud -q components update --version 104.0.0
-    - gcloud -q config set app/use_appengine_api true
+    - gcloud -q components update app
     - if [ -a client-secret.json ]; then
           gcloud auth activate-service-account --key-file client-secret.json;
       fi
     - gcloud config set project cloud-pubsub-sample-test
     - mkdir -p appengine-push/lib
     - pip install -t appengine-push/lib -r appengine-push/requirements.txt
-    - gcloud -q preview app deploy --project cloud-pubsub-sample-test --version=py appengine-push/app.yaml
+    - gcloud -q app deploy --project cloud-pubsub-sample-test --version=py appengine-push/app.yaml
 
 script:
     - tox

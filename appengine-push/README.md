@@ -52,10 +52,10 @@ $ pip install -t lib -r requirements.txt
 $ appcfg.py --oauth2 update -A your-application-id .
 ```
 
-or you can use gcloud preview feature
+or you can use gcloud SDK
 
 ```
-$ gcloud preview app deploy --project your-application-id .
+$ gcloud app deploy
 ```
 
 Then access the following URL:
